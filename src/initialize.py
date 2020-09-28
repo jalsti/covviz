@@ -30,13 +30,14 @@ def do_it(a=True, b=True, c=True, d=True):
     if d:
         daily.daily_update(publish=False,
                            regenerate_pages_regardless_if_new_data=True,
-                           regenerate_plots_regardless_if_new_data=False,
+                           regenerate_plots_regardless_if_new_data=True,
                            showExtremes=False,
                            withSyntheticData=False)
 
 if __name__ == '__main__':
     
-    # do_it()
-    do_it(a=False, b=False, c=False)
+    do_it()
+    # do_it(a=False, d=False)
    
     print ("\nREADY.")
+    
