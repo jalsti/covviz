@@ -169,15 +169,17 @@ def kreis_link(bnn, AGS):
 def kreis_nearby_links(bnn, distances, AGS, km=50):
     neighbours = nearby (distances, AGS, km)
     linklist=[]
+    AGSlist=[]
     for AGS2 in neighbours["AGS2"].tolist():
         # print (AGS2)
         try:
             filename, nameAndType, link = kreis_link(bnn, AGS2)
             # print (filename, nameAndType)
             linklist.append(link)
+            AGSlist.append(str(AGS2))
         except IndexError:
             print(f"{AGS2=} could not be linked, ignoring")
-    return ", ".join(linklist)
+    return ", ".join(linklist), ",".join(AGSlist)
 
 
 def compare_risklayer_with_opendatasoft(bnn):

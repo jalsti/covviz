@@ -118,6 +118,11 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     page = dataTable.PAGE % BL_name
 
     district_AGSs = ts_sorted[ts_sorted.Bundesland==BL_name].index.tolist()
+    choices_js_stub="""<span id="{choice_id}"></span>
+            <script>
+                document.getElementById("{choice_id}").insertAdjacentHTML("afterbegin", 
+                '<a target="_blank" href="choice.html?cols={cols}&title={title}&loc={locs}">Show this neighbours in new window.</a><br>');
+            </script>"""
     
     page +='<a name="top">'
     page +='Up to <a href="about.html">about.html</a> or to overview of <a href="Deutschland.html">Germany</a>\n'
@@ -149,12 +154,21 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
         gen, bez, inf, pop = dataMangling.AGS_to_population(bnn, AGS)
         daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, str(AGS))
         
-        nearby_links = districtDistances.kreis_nearby_links(bnn, distances, AGS, km) if AGS else ""
+        nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(bnn, distances, AGS, km)
         AGS_5digits = ("00000%s" % AGS) [-5:] 
         anchor = "AGS%s" % (AGS_5digits)
         page +="<hr><h3 id=%s>%s AGS=%s</h3>\n" % (anchor, title, AGS)
         # print (cumulative)
         page +="Neighbours within %d km: %s<p/>\n" % (km, nearby_links)
+
+        # add choices link of country, Bundesland, AGS and neighbors with JS (as work with JS only)
+        locs = "Deutschland,"
+        if gen != BL_name:  # add Bundesland if not same as city
+            locs += f"{BL_name},"
+        locs += f"{AGS},{nearby_AGS}"
+        cols = 3 # if nearby_AGS.count(',') < 12 else 4
+        page += choices_js_stub.format(choice_id=f"{anchor}_choice", title=f"{gen} and neighbors within {km}km", locs=locs, cols=cols)
+
         filename_kreis_PNG = "Kreis_" + ("00000"+str(AGS))[-5:] + ".png"
         page +='<img src="%s"/><p/>' % ("../pics/" + filename_kreis_PNG)
         
