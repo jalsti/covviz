@@ -4,16 +4,36 @@
 <!-- this is version v02, and was improved on 31/Aug/2020                                    -->
 
 <!-- example calls:                                                                          -->
-<!-- choice.html?loc=Deutschland,Nordrhein-Westfalen,05370,05558,05754,05111&rows=2          -->
-<!-- choice.html?loc=Deutschland,Nordrhein-Westfalen,Bayern,Mecklenburg-Vorpommern&rows=2    -->
-<!-- choice.html?loc=09163,09162,07235,08121,09161,06414,09261,08421,09174&rows=3            -->
+<!-- choice.html?loc=Deutschland,Nordrhein-Westfalen,05370,05558,05754,05111&cols=2          -->
+<!-- choice.html?loc=Deutschland,Nordrhein-Westfalen,Bayern,Mecklenburg-Vorpommern&cols=2    -->
+<!-- choice.html?loc=09163,09162,07235,08121,09161,06414,09261,08421,09174&cols=3            -->
 
 <!-- for v01 thank you very much to @gibbsnich:                                              -->
 <!-- https://gist.github.com/gibbsnich/6739f01cf4c76493a38e35b9ddcc3b77                      -->
 
 <html>
+<head>
+<style>
+#footer{
+      text-align:center;
+}
+img{
+      width: 100%;
+}
+figure {
+      display: inline-block;
+      margin-inline-end: 0px;
+      margin-inline-start: 0px;
+}
+</style>
+</head>
 <body>
-<table id="table" width="100%"></table>
+<div id="container"></div>
+<div id="footer"></div>
+
+<hr>
+Script version v03, done on 29/09/2020, see HTML source for instructions.
+
 </body>
 <script>
 function getUrlParameters() {
@@ -49,19 +69,22 @@ function getBundesland(kreis){
 document.addEventListener("DOMContentLoaded", (event) => {
     const params = getUrlParameters(),
           locs = params.loc ? params.loc.split(",") : [],
-          rows = params.rows ? params.rows : locs.length,
-          locsPerLine = rows > 0 ? Math.ceil(locs.length / rows) : 0,
-          table = document.getElementById("table");
-    let   curLocs = 0,
-          curRow;
+          cols = params.cols ? parseInt(params.cols) : locs.length,
+          container = document.getElementById("container");
+
+      if(params.title)
+            head = document.getElementsByTagName("head")[0].insertAdjacentHTML("afterbegin", "<title>" + String(params.title) + "</title>")
+          
     locs.forEach((l) => {
-        if (curLocs === 0) {
-            curRow = table.insertRow();
-        }
-        const cell = curRow.insertCell(),
+        const figure = document.createElement("figure"), 
               a = document.createElement("a"),
               i = new Image();
-        a.href = `${l}.html`;
+        if(cols > 0 && cols <= locs.length){
+            figure.style.width = 100/(cols) +"%";
+        } else {
+            figure.style.width = "auto";
+        }
+        a.href = String(`${l}.html`);
         if (l === "Deutschland") {
           i.src = "../pics/Deutschland.png";
         } else if (l === l.replace(/[^0-9]/g, "")) {
@@ -73,14 +96,23 @@ document.addEventListener("DOMContentLoaded", (event) => {
           i.src =`../pics/bundesland_${l}.png`;
         }
         a.appendChild(i);
-        cell.appendChild(a);
-        curLocs += 1;
-        if (curLocs === locsPerLine) {
-            curLocs = 0;
-        }
+        figure.appendChild(a);
+        container.appendChild(figure);
     });
+    footer = document.getElementById("footer");
+    if(cols > 1) {
+          al = document.createElement("a");
+          al.text = "show less columns";
+          al.href = document.location.href.replace("cols="+cols, "cols=" +(cols-1));
+          footer.appendChild(al);
+    }
+    footer.appendChild(document.createTextNode(" "));
+    if(cols < locs.length) {
+          am = document.createElement("a");
+          am.text = "show more columns";
+          am.href = document.location.href.replace("cols="+cols, "cols=" +(cols+1));
+          footer.appendChild(am);
+    }
 });
 </script>
-<hr>
-See <a href="http://tiny.cc/cov19de">tiny.cc/cov19de</a> for more infos about this. Script version v02, done on 31/8/2020, see HTML source for instructions.
 </html>
