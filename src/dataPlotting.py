@@ -65,7 +65,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, ifSh
         # plot 7 day sums, only if incidence borders are available
         window = 7
         rolling_sum = pandas.DataFrame(daily).rolling(window=window, center=False).sum()
-        lns0 = ax.plot(dates, rolling_sum, label='sum of daily cases of prior %s days for date' % window, color='red')
+        lns0 = ax.plot(dates, rolling_sum, label='sum of daily cases of prior %s days for date' % window, color='#00008B')
         rolling_sum_max = rolling_sum[0].max()
         y_max = max(y_max, rolling_sum_max)
         plt.ylim(0, y_max * PLOT_YLIM_ENLARGER)
