@@ -20,7 +20,7 @@ import os
 import matplotlib
 import pandas
 
-# matplotlib.use('Agg')  # to be able to plot without GUI, this must be set before importing pyplot
+matplotlib.use('Agg')  # to be able to plot without GUI, this must be set before importing pyplot
 from matplotlib import pyplot as plt
 
 import dataFiles, dataMangling
