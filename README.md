@@ -7,7 +7,8 @@ generates a static website from daily updated infections data in Germany.
 
 Most of the code in this repository (https://github.com/jalsti/covviz/) has originally been written, or is based on code written by Dr. Andreas Krüger, who published it at https://github.com/covh/covviz/. It got forked to make some tweaks to the graph plots, starting in September 2020 with a visible x-y–grid (which needed some changes to the x-/y-scaling/tick amount), faster generating times through using more than one CPU core, if available, fixing code for some opendatasoft data source changes, making plotting available with headless systems, and a more flexible district overview plotting setup, with similar setup for the [choice.html](https://jalsti.github.io/cov19de/pages/choice.html), which has now links for setting more (or less) columns in its overview, and to which a link gets added on the district plots, showing the plots of the cities in a 50km area around it on one page.
 
-The plotting of the daily cases got changed, with a new main graph to reflect the sum of the daily cases of the last 7 days for a date in a district, with showing the incidence borders for it.
+* The plotting of the daily cases got changed, with a new main graph to reflect the sum of the daily cases of the last 7 days for a date in a district, with showing the incidence borders for it.
+* A color gradient on the plot backgrounds indicate how large the numbers in it get, compared to other plots of same type. Less colourfull means less relative total cases per people
 
 Still most real work horse code is left in its original form, which is also the reason that all the links which point to the original project are left like they are.
 
