@@ -135,14 +135,16 @@ def generate_all_plots(withSyntheticData=True):
 
     ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=withSyntheticData)
     print()
-    
+
     print ("Plotting takes a bit of time. Patience please. Thanks.")
     done = dataPlotting.plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=False)
     print ("plot_all_Bundeslaender: %d items" % len(done))
-    
+
+    max_current_cumulative_100k = dataMangling.get_Kreise_max_current_cumulative_100k(bnn)
+
     listOfAGSs = ts["AGS"].tolist()
     print ("Plotting %d images, for each Kreis. Patience please: " % len(listOfAGSs))
-    done = dataPlotting.plot_Kreise_parallel(ts, bnn, dates, datacolumns, listOfAGSs, ifPrint=True)
+    done = dataPlotting.plot_Kreise_parallel(ts, bnn, dates, datacolumns, listOfAGSs, max_current_cumulative_100k, ifPrint=True)
     print ("plot_Kreise done: %d items" % len(done))
     print()
 
@@ -236,4 +238,3 @@ if __name__ == '__main__':
     loadAndShowSomeExtremeValues()
     
     print ("\nREADY.")
-    

@@ -134,11 +134,16 @@ def temporal_center(data):
     return center, signal
 
 
+def get_Kreise_max_current_cumulative_100k(bnn):
+    max_current_cumulative_100k = bnn[bnn.columns[5]].str.replace(',', '.').astype(float).max() * 100
+    return max_current_cumulative_100k
+
+
 def get_Kreis(ts, bnn, AGS):
     # get data and names
     gen, bez, inf, pop = AGS_to_population(bnn, AGS)
     name_BL, inf_BL, pop_BL = AGS_to_Bundesland(bnn, AGS)
-    title = "%s (%s #%s, %s) Population=%d" % (gen, bez, AGS, name_BL, pop)
+    title = "{} ({}, #{}, {}), Population={:,}".format(gen, bez, AGS, name_BL, pop)
     filename = "Kreis_" + ("00000"+AGS)[-5:] + ".png"
     daily = AGS_to_ts_daily(ts, AGS)
     cumulative = AGS_to_ts_total(ts, AGS)
@@ -173,7 +178,7 @@ def get_BuLa(Bundeslaender, name, datacolumns):
     diff = row.diff(axis=1)
     daily = diff.values[0].tolist()
 
-    title = name + " Population=%d" % population
+    title = name + " Population={:,}".format( population)
 
     return daily, cumulative, title, filename, population
 

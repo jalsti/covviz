@@ -132,7 +132,9 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     page +='<img src="%s"/><p/>' % ("../pics/" + filename_PNG)
     page += "population: {:,}".format(pop_BL)
     prevalence = 1000000.0 * cumulative[-1] / pop_BL 
-    page += " --> current prevalence: %d known infected per 1 million population<br/>\n" % (prevalence )
+    page += " --> current prevalence: %d known infected per 1 million population. " \
+            "The background color gradient indicates how many this is, compared to all other Bundeslaender " \
+            "(the less colourfull, the less cases exist, compared to other Bundeslaender).<br/>\n" % (prevalence )
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
     
     page +="<hr><h2 id='Kreise'>%s's %d Kreise</h2>\n" % (BL_name, len(district_AGSs))
@@ -174,7 +176,9 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
         
         prevalence = cumulative[-1] / pop * 1000000
         page += ("%s %s" % (bez, gen)) + " population: {:,}".format(pop)
-        page += " --> current prevalence: %d known infected per 1 million people.<br/>\n" % (prevalence )
+        page += " --> current prevalence: %d known infected per 1 million people. " \
+                "The background color gradient indicates how many this is, compared to all other Kreise " \
+                "(the less colourfull, the less cases exist, compared to other Kreise).<br/>\n" % (prevalence )
 
         sources = sources_links(haupt, AGS)
         page += "sources: %s; " % sources if sources else "" 
@@ -316,7 +320,9 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     
     prevalence = cumulative[-1] / DE["Population"] * 1000000
     page += "population: {:,}".format(DE["Population"])
-    page += " --> current prevalence: %d known infected per 1 million population<br/>\n" % (prevalence )
+    page += " --> current prevalence: %d known infected per 1 million population." \
+            "The background color gradient indicates how many this is, compared to all other Bundeslaender " \
+            "(the less colourfull, the less cases exist, compared to other Bundeslaender).<br/>\n" % (prevalence )
     
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
 
@@ -332,8 +338,10 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     
     page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
-    page +='<hr><h3 id="Bundeslaender_4by4">alphabetically</h3>\n'
-    
+    page +='<hr><h3 id="Bundeslaender_4by4">Bundeslaender alphabetically</h3>\n'
+    page +='The background color gradient of the plots indicates how many this is, compared to all other Bundeslaender " \
+            "(the less colourfull, the less cases exist, compared to other Bundeslaender).\n'
+
     page += '<div class="bloverview">'
     page += bloverview(Bundeslaender_sorted)
     page += '</div>'
