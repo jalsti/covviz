@@ -131,11 +131,11 @@ def generate_all_pages(withSyntheticData=True):
     return True
     
 
-def generate_all_plots(withSyntheticData=True):
+def generate_all_plots(withSyntheticData=False):
 
     ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=withSyntheticData)
     print()
-    
+
     print ("Plotting takes a bit of time. Patience please. Thanks.")
     done = dataPlotting.plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=False)
     print ("plot_all_Bundeslaender: %d items" % len(done))
@@ -186,7 +186,7 @@ def git_commit_and_push(path=WWW_REPO_PATH, script=WWW_REPO_PATH_GIT_SCRIPT):
         os.chdir(before)
 
 
-def daily_update(regenerate_pages_regardless_if_new_data=False, regenerate_plots_regardless_if_new_data=False, publish=True, showExtremes=True, withSyntheticData=True):
+def daily_update(regenerate_pages_regardless_if_new_data=False, regenerate_plots_regardless_if_new_data=False, publish=True, showExtremes=True, withSyntheticData=False):
     print ("Started at", ("%s" % datetime.datetime.now()) [:19],"\n")
     
     success1, success2, success3, success4, success5  = False, False, False, False, False
@@ -236,4 +236,3 @@ if __name__ == '__main__':
     loadAndShowSomeExtremeValues()
     
     print ("\nREADY.")
-    
