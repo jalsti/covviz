@@ -134,6 +134,11 @@ def temporal_center(data):
     return center, signal
 
 
+def get_Kreise_max_current_cumulative_100k(bnn):
+    max_current_cumulative_100k = bnn[bnn.columns[5]].str.replace(',', '.').astype(float).max() * 100
+    return max_current_cumulative_100k
+
+
 def get_Kreis(ts, bnn, AGS):
     # get data and names
     gen, bez, inf, pop = AGS_to_population(bnn, AGS)

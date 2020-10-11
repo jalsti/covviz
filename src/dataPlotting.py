@@ -100,7 +100,9 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     window = 14
     rolling_mean = pandas.DataFrame(daily).rolling(window=window, center=True).mean()
     rmean_data = rolling_mean[0]
-    lns3 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='orange', linewidth=2)
+    lns3 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='orange', linewidth=3)
+    if isKreis:
+        lns3_1 = ax.fill_between(dates, rmean_data, [0]*len(dates), label="centered moving average, %s days cases" % window, color='orange', linewidth=0)
 
     # y-axis label multi colored
     ybox1 = TextArea("raw daily cases", textprops=dict(color=lns1[0].get_color(), rotation='vertical'))
@@ -252,17 +254,21 @@ def test_plot_Kreis(ts, bnn, dates, datacolumns):
     ## Kreis
     AGS = "0"
     # AGS = "1001"
-    AGS = "5370"
+    AGS = "5711"
     # AGS = "9377"
-    daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, AGS)
-    plot_timeseries(datacolumns, dates, daily, cumulative, title, filename=filename, population=pop)
+
+    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=False)
+    max_current_cumulative_100k = dataMangling.get_Kreise_max_current_cumulative_100k(bnn)
+
+    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_current_cumulative_100k, ifPrint=False)
 
 
-def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, ifPrint=True):
+def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_100k, ifPrint=True):
     done = []
     for AGS in Kreise_AGS:
         daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, AGS)
-        plot_timeseries(datacolumns, dates, daily, cumulative, title, filename=filename, ifShow=False, population=pop)
+        plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop, max_current_cumulative_100k=max_current_cumulative_100k,
+                        filename=filename, ifShow=False)
         done.append((title, filename))
         if ifPrint:
             print(title, filename)
@@ -275,7 +281,7 @@ def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, ifPrint=True):
     return done
 
 
-def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, ifPrint=True):
+def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_100k, ifPrint=True):
     import multiprocessing as mp
 
     # one CPU should be left free for the system, and multiprocessing makes only sense for at least 2 free CPUs,
@@ -285,14 +291,14 @@ def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, ifPrint=True):
     wanted_cpus = available_cpus - leave_alone_cpus
 
     if available_cpus < wanted_cpus or wanted_cpus < 2:
-        return plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, ifPrint)
+        return plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_100k, ifPrint=ifPrint)
 
     done = []
 
     # setup process pool
     pool = mp.Pool(wanted_cpus)
     try:
-        done = pool.starmap(plot_Kreise, [(ts, bnn, dates, datacolumns, [AGS], ifPrint) for AGS in Kreise_AGS])
+        done = pool.starmap(plot_Kreise, [(ts, bnn, dates, datacolumns, [AGS], max_current_cumulative_100k, ifPrint) for AGS in Kreise_AGS])
     except KeyboardInterrupt:
         # without catching this here we will never be able to manually stop running in a sane way
         pool.terminate()
@@ -319,7 +325,7 @@ def plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=True):
     done = []
 
     BL = Bundeslaender.drop(labels=['Deutschland', 'Dummyland'])
-    max_current_cumulative_100k = max(BL.loc[:, BL.columns[-2]] / BL.loc[:, BL.columns[-1]]) *100000
+    max_current_cumulative_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
     # print(max_current_cumulative_100k)
 
     for BL in Bundeslaender.index.tolist():
