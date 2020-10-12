@@ -140,11 +140,11 @@ def generate_all_plots(withSyntheticData=True):
     done = dataPlotting.plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=False)
     print ("plot_all_Bundeslaender: %d items" % len(done))
 
-    max_current_cumulative_100k = dataMangling.get_Kreise_max_current_cumulative_100k(bnn)
+    max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
 
     listOfAGSs = ts["AGS"].tolist()
     print ("Plotting %d images, for each Kreis. Patience please: " % len(listOfAGSs))
-    done = dataPlotting.plot_Kreise_parallel(ts, bnn, dates, datacolumns, listOfAGSs, max_current_cumulative_100k, ifPrint=True)
+    done = dataPlotting.plot_Kreise_parallel(ts, bnn, dates, datacolumns, listOfAGSs, max_prevalence_100k, ifPrint=True)
     print ("plot_Kreise done: %d items" % len(done))
     print()
 
@@ -188,15 +188,19 @@ def git_commit_and_push(path=WWW_REPO_PATH, script=WWW_REPO_PATH_GIT_SCRIPT):
         os.chdir(before)
 
 
-def daily_update(regenerate_pages_regardless_if_new_data=False, regenerate_plots_regardless_if_new_data=False, publish=True, showExtremes=True, withSyntheticData=True):
+def daily_update(regenerate_pages_regardless_if_new_data=False, regenerate_plots_regardless_if_new_data=False,
+                 publish=True, showExtremes=True, withSyntheticData=True, downloadNewData=True):
     print ("Started at", ("%s" % datetime.datetime.now()) [:19],"\n")
     
-    success1, success2, success3, success4, success5  = False, False, False, False, False
-    
-    print ("Downloading risklayer data:")
-    # new_CSV, new_master_state = True, True
-    new_CSV, new_master_state = download_all(showExtremes=showExtremes)
-    success1 = True
+    new_CSV = success1 = success2 = success3 = success4 = success5 = False
+
+    if downloadNewData:
+        print ("Downloading risklayer data:")
+        # new_CSV, new_master_state = True, True
+        new_CSV, new_master_state = download_all(showExtremes=showExtremes)
+        success1 = True
+    else:
+        print(f"skipping download of new data as {downloadNewData=}")
 
     line = "\n" + ("*"*50) + "\n"
         
