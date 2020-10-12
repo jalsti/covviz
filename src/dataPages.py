@@ -55,6 +55,12 @@ SPONSORS_IMG_ABOUT_PAGE = """
 </a> 
 """
 
+CHOICES_ITEMS_JS_STUB = """<span id="{choice_id}">
+        <script>
+            document.getElementById("{choice_id}").insertAdjacentHTML("afterbegin", 
+            '<big>&rarr;</big>&nbsp;<a target="_blank" href="choice.html?cols={cols}&title={title}&loc={locs}">{linktext}</a><br>');
+        </script>
+        </span>"""
 
 def search_URLs(kreis, kreissitz):
     text="search last week, "
@@ -114,12 +120,6 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     page = dataTable.PAGE % BL_name
 
     district_AGSs = ts_sorted[ts_sorted.Bundesland==BL_name].index.tolist()
-    choices_js_stub="""<span id="{choice_id}">
-            <script>
-                document.getElementById("{choice_id}").insertAdjacentHTML("afterbegin", 
-                '<big>&rarr;</big>&nbsp;<a target="_blank" href="choice.html?cols={cols}&title={title}&loc={locs}">Open all plots of these neighbours in a new window.</a><br>');
-            </script>
-            </span>"""
     
     page +='<a name="top">'
     page +='Up to <a href="about.html">about.html</a> or to overview of <a href="Deutschland.html">Germany</a>\n'
@@ -132,7 +132,7 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/> " % prevalence
     page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
             "relative to all other {plural}; e.g. the less colourful the gradient is, " \
-            "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value, which exists over all {plural})." \
+            "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \
             "<br/>\n".format(singular="Bundesland (federal state)", plural="Bundeslaender (federal states)")
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
     
@@ -168,7 +168,8 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
             locs += f"{BL_name},"
         locs += f"{AGS},{nearby_AGS}"
         cols = 3 # if nearby_AGS.count(',') < 12 else 4
-        page += choices_js_stub.format(choice_id=f"{anchor}_choice", title=f"{gen} and neighbors within {km}km", locs=locs, cols=cols)
+        page += CHOICES_ITEMS_JS_STUB.format(choice_id=f"{anchor}_choice", locs=locs, cols=cols, title=f"covviz plots of {gen} and neighbours within {km}km",
+                                             linktext="Open all plots of these neighbours in a new window.")
 
         filename_kreis_PNG = "Kreis_" + ("00000"+str(AGS))[-5:] + ".png"
         page +='<img src="%s"/><p/>' % ("../pics/" + filename_kreis_PNG)
@@ -178,7 +179,7 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
         page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/> " % prevalence
         page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
                 "relative to all other {plural}; e.g. the less colourful the gradient is, " \
-                "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value, which exists over all {plural})." \
+                "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \
                 "<br/>\n".format(singular="Kreis (district)", plural="Kreise (districts)")
 
         sources = sources_links(haupt, AGS)
@@ -340,7 +341,7 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     page +='<hr><h3 id="Bundeslaender_4by4">Bundeslaender alphabetically</h3>\n'
     page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
             "relative to all other {plural}; e.g. the less colourful the gradient is, " \
-            "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value, which exists over all {plural})." \
+            "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \
             "<br/>\n".format(singular="Bundesland (federal state)", plural="Bundeslaender (federal states)")
 
 
@@ -356,12 +357,19 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     page +='<h3>ranked by "expectation day" or other measures ...</h3>\n'
     page +="Click on name of Kreis (or Bundesland) to see detailed data. To see all of them, "
     page +='<a href="javascript:expand_table_div(\'tablediv_kreise\');">expand table area</a>, or use scrollbar.<p/>\n'
-    
+
     district_AGSs = ts_sorted.index.tolist()
     fn, kreiseHTML = dataTable.Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, filename="kreise_Germany.html", header="\n", footer="\n")
-    page += kreiseHTML 
-    
-    page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
+    page += kreiseHTML
+
+    AGS_str_list = ts_sorted.index.astype('str').to_list()[:-1]
+    # cleaned_BL_names = BL_names[:].remove('Dummyland')
+    # locs=",".join(BL_names[:] + AGS_str_list[:])
+    locs=",".join(AGS_str_list[:])
+    page += CHOICES_ITEMS_JS_STUB.format(choice_id="all_district_plots", locs=locs, cols=4,
+                                         title="covviz plots of all 401 german Kreise \(districts\), sorted by expectation day",
+                                         linktext="Open plots of all 401 german Kreise \(districts\) in a new window.")
+    page +='<br/><a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
     page +=GOOGLESHEET_HTML
     page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
