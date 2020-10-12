@@ -16,13 +16,9 @@
 
 import os, datetime, math
 
-import pandas
-import numpy
-from matplotlib import pyplot as plt
-import matplotlib 
 import urllib.parse
 
-import dataFiles, dataMangling, dataPlotting, districtDistances, dataTable
+import dataFiles, dataMangling, districtDistances, dataTable
 
 
 
@@ -118,11 +114,12 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     page = dataTable.PAGE % BL_name
 
     district_AGSs = ts_sorted[ts_sorted.Bundesland==BL_name].index.tolist()
-    choices_js_stub="""<span id="{choice_id}"></span>
+    choices_js_stub="""<span id="{choice_id}">
             <script>
                 document.getElementById("{choice_id}").insertAdjacentHTML("afterbegin", 
-                '<a target="_blank" href="choice.html?cols={cols}&title={title}&loc={locs}">Show this neighbours in new window.</a><br>');
-            </script>"""
+                '<big>&rarr;</big>&nbsp;<a target="_blank" href="choice.html?cols={cols}&title={title}&loc={locs}">Open all plots of these neighbours in a new window.</a><br>');
+            </script>
+            </span>"""
     
     page +='<a name="top">'
     page +='Up to <a href="about.html">about.html</a> or to overview of <a href="Deutschland.html">Germany</a>\n'
@@ -131,10 +128,12 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     page +="<hr><h1>%s %s, and its %d districts (%s)</h1>\n" % (flagimg, BL_name, len(district_AGSs), datacolumns[-1])
     page +='<img src="%s"/><p/>' % ("../pics/" + filename_PNG)
     page += "population: {:,}".format(pop_BL)
-    prevalence = 1000000.0 * cumulative[-1] / pop_BL 
-    page += " --> current prevalence: %d known infected per 1 million population. " \
-            "The background color gradient indicates how many this is, compared to all other Bundeslaender " \
-            "(the less colourfull, the less cases exist, compared to other Bundeslaender).<br/>\n" % (prevalence )
+    prevalence = cumulative[-1] / pop_BL * 1000000
+    page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/> " % prevalence
+    page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
+            "relative to all other {plural}; e.g. the less colourful the gradient is, " \
+            "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value, which exists over all {plural})." \
+            "<br/>\n".format(singular="Bundesland (federal state)", plural="Bundeslaender (federal states)")
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
     
     page +="<hr><h2 id='Kreise'>%s's %d Kreise</h2>\n" % (BL_name, len(district_AGSs))
@@ -159,9 +158,9 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
         nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(bnn, distances, AGS, km)
         AGS_5digits = ("00000%s" % AGS) [-5:] 
         anchor = "AGS%s" % (AGS_5digits)
-        page +="<hr><h3 id=%s>%s AGS=%s</h3>\n" % (anchor, title, AGS)
+        page +="<hr><h3 id=%s>%s</h3>\n" % (anchor, title)
         # print (cumulative)
-        page +="Neighbours within %d km: %s<p/>\n" % (km, nearby_links)
+        page +="Neighbours within %d km: %s<br/>\n" % (km, nearby_links)
 
         # add choices link of country, Bundesland, AGS and neighbors with JS (as work with JS only)
         locs = "Deutschland,"
@@ -176,9 +175,11 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
         
         prevalence = cumulative[-1] / pop * 1000000
         page += ("%s %s" % (bez, gen)) + " population: {:,}".format(pop)
-        page += " --> current prevalence: %d known infected per 1 million people. " \
-                "The background color gradient indicates how many this is, compared to all other Kreise " \
-                "(the less colourfull, the less cases exist, compared to other Kreise).<br/>\n" % (prevalence )
+        page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/> " % prevalence
+        page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
+                "relative to all other {plural}; e.g. the less colourful the gradient is, " \
+                "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value, which exists over all {plural})." \
+                "<br/>\n".format(singular="Kreis (district)", plural="Kreise (districts)")
 
         sources = sources_links(haupt, AGS)
         page += "sources: %s; " % sources if sources else "" 
@@ -221,7 +222,7 @@ def Bundeslaender_alle(Bundeslaender, ts, ts_sorted, datacolumns, bnn, distances
         
         filenames.append((BL_name, fn_abs ))
         population += pop_BL
-    print ("\nTotal population covered:", population)
+    print ("\nTotal population covered (including Germany total population):", population)
     print ("%d filenames written: %s" % (len(filenames), filenames))
     
     return filenames
@@ -232,12 +233,12 @@ def Deutschland_simple(Bundeslaender_filenames, filename_HTML="Deutschland_simpl
     page +='<a name="#top">'
     page +='Up to <a href="about.html">about.html</a>\n'
     
-    page +="<h1>Germany and its 17 countries</h1>\n" 
+    page +="<h1>Germany and its 16 countries</h1>\n"
     page +='<img src="%s"/><p/>' % ("../pics/Deutschland.png")
     page +="total cases: %s<br>\n" #  % (list(map(int, cumulative)))
     # prevalence = cumulative[-1] / pop_BL * 1000000
     # page += "population: {:,}".format(pop_BL)
-    # page += " --> current prevalence: %d known infected per 1 million population<p/>\n" % (prevalence )
+    # page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time)<p/>\n" % (prevalence )
     
     page +="<h2>16 Bundesländer</h2>\n"
     
@@ -320,9 +321,7 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     
     prevalence = cumulative[-1] / DE["Population"] * 1000000
     page += "population: {:,}".format(DE["Population"])
-    page += " --> current prevalence: %d known infected per 1 million population." \
-            "The background color gradient indicates how many this is, compared to all other Bundeslaender " \
-            "(the less colourfull, the less cases exist, compared to other Bundeslaender).<br/>\n" % (prevalence )
+    page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/>\n" % prevalence
     
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
 
@@ -339,8 +338,11 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
     page +='<hr><h3 id="Bundeslaender_4by4">Bundeslaender alphabetically</h3>\n'
-    page +='The background color gradient of the plots indicates how many this is, compared to all other Bundeslaender " \
-            "(the less colourfull, the less cases exist, compared to other Bundeslaender).\n'
+    page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
+            "relative to all other {plural}; e.g. the less colourful the gradient is, " \
+            "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value, which exists over all {plural})." \
+            "<br/>\n".format(singular="Bundesland (federal state)", plural="Bundeslaender (federal states)")
+
 
     page += '<div class="bloverview">'
     page += bloverview(Bundeslaender_sorted)
