@@ -34,16 +34,21 @@ weeklyIncidenceLimit1Per100k = 35
 weeklyIncidenceLimit2Per100k = 50
 
 
-def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_current_cumulative_100k=None, ifShow=True, ifCleanup=True, isKreis=True):
+def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_prevalence_100k=None, ifShow=True, ifCleanup=True, isKreis=True):
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
-    PLOT_YLIM_ENLARGER = 1.1
+    # enlarger for y-limits of axis' tick ranges
+    PLOT_YLIM_ENLARGER = 1.2  # if this is too low (e.g. 1.15), chances are good that some daily graphs go beyond the top, due to below manual changes to automatic ticks
+    # plotting color for 7-daily sums graph
     COLOR_INCID_SUMS = '#000060'
+
+    lns0, lns1, lns3, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2 = [], [], [], [], [], [], [], [], []
 
     fig, ax = plt.subplots(figsize=(10, 6))  # , constrained_layout=True)
 
     ax_cumu = ax.twinx()
     ax_sum = ax.twinx()
+    ax_for_marker = ax
 
     # plt.tight_layout()
 
@@ -59,24 +64,24 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     ax.xaxis.set_minor_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 30, 5)))
 
     # plot raw daily cases
-    lns1 = ax.plot(dates, daily, label="raw daily cases (weekend-flawed)", color='#999999')
+    lns1 = ax.plot(dates, daily, label="raw daily cases (weekend-flawed)", color='#888888')
     # lns1 = ax.plot(dates, daily, label="daily cases (weekend-flawed), 2 weeks: red", color='#AAAAAA')
     # lns1_2 = ax.plot(dates[-14:], daily[-14:], label="daily cases, last 14 days dark gray", color='red')
     # print (len(dates[-14:]))
 
-
-    if max_current_cumulative_100k is not None and not "Deutschland" in filename:
+    if max_prevalence_100k is not None and not "Deutschland" in filename:
         # backgroud gradient indicating max values compared with global
-        glob_max = max_current_cumulative_100k
-        mid = mp_dates.date2num(dates)[int(len(dates) / 2)] # get middle point of the dates as plot start point
+        glob_max = max_prevalence_100k
+        mid = mp_dates.date2num(dates)[int(len(dates) / 2)]  # get middle point of the dates as plot start point
         # arange new points up to plot target maximum
-        points = np.array([[mid] * len(dates), np.linspace(0, max(cumulative) *PLOT_YLIM_ENLARGER, len(dates))]).T.reshape(-1, 1, 2)
+        points = np.array([[mid] * len(dates), np.linspace(0, max(cumulative) * PLOT_YLIM_ENLARGER, len(dates))]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         # set proportion matching plot item to global max
-        proportion = np.linspace(0, max(cumulative/population*100000) *PLOT_YLIM_ENLARGER, len(dates))
+        proportion = np.linspace(0, max(cumulative / population * 100000) * PLOT_YLIM_ENLARGER, len(dates))
         # set norm to match global max, shooting the colors over the plot item's max, if it is not the max itself
         norm = plt.Normalize(0, glob_max)
-        lc = LineCollection(segments, cmap='YlOrRd', norm=norm, zorder=1, alpha=0.4)
+        cmap = 'YlOrRd' if isKreis else 'Reds'
+        lc = LineCollection(segments, cmap=cmap, norm=norm, alpha=0.4)
         lc.set_array(proportion)
         lc.set_linewidth(6 * fig.dpi)
         lns3_0 = ax_cumu.add_collection(lc)
@@ -94,31 +99,28 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     ax_cumu.yaxis.label.set_color(color=lns5[0].get_color())
     ax_cumu.tick_params(axis='y', colors=lns5[0].get_color())
 
-    # plot rolling mean
-
-    #  get rolling averages for daily cases, over two weeks
+    # plot rolling averages
+    # rolling averages for daily cases, over two weeks
     window = 14
     rolling_mean = pandas.DataFrame(daily).rolling(window=window, center=True).mean()
     rmean_data = rolling_mean[0]
-    lns3 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='orange', linewidth=3)
+
     if isKreis:
-        lns3_1 = ax.fill_between(dates, rmean_data, [0]*len(dates), label="centered moving average, %s days cases" % window, color='orange', linewidth=0)
+        lns3_1 = ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % window, color='orange', linewidth=0)
+    lns3 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='orange', linewidth=3, zorder=1)  # 'zorder' to not overplot raw dailys
 
     # y-axis label multi colored
     ybox1 = TextArea("raw daily cases", textprops=dict(color=lns1[0].get_color(), rotation='vertical'))
     ybox2 = TextArea(" / ", textprops=dict(color="black", rotation='vertical'))
-    ybox3 = TextArea("moving average", textprops=dict(color='orange', rotation='vertical'))
+    ybox3 = TextArea("moving average", textprops=dict(color=lns3[0].get_color(), rotation='vertical'))
     ybox = VPacker(children=[ybox3, ybox2, ybox1], align="center", pad=0, sep=5)
     anchored_ybox = AnchoredOffsetbox(loc=8, child=ybox, pad=0., frameon=False,
-                                      bbox_to_anchor=(-0.08, 0.2),
+                                      bbox_to_anchor=(-0.08, 0.2),  # if first value smaller than -0.08 we get in trouble with graph for country
                                       bbox_transform=ax.transAxes, borderpad=0.)
     ax.add_artist(anchored_ybox)
 
     # plot rolling sum of prior 7 days cases for date, if it is a Kreis, where the according incidence borders are of interest
     yminor = 0
-    lns0 = []
-    lns6_1 = []
-    lns6_2 = []
     if isKreis:
         # plot 7 day sums, only if incidence borders can be calculated via population
         # according grid for it
@@ -136,7 +138,8 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         label = 'sum of daily cases, for prior %s days of date' % window
         rolling_sum = pandas.DataFrame(daily).rolling(window=window, center=False).sum()
         rolling_sum_max = rolling_sum[0].max()
-        # plot yellow background for graph
+
+        # plot yellow background for sum graph, then graph over it
         lns0 = ax_sum.plot(dates, rolling_sum, label=label, color='yellow', linewidth=7, alpha=0.4)
         lns0 = ax_sum.plot(dates, rolling_sum, label=label, color=COLOR_INCID_SUMS)
 
@@ -158,21 +161,25 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         # calculate some good value for minor ticks
         yticks = yloc2()
         ydiff = yticks[1]
-        yminor = int(ydiff / 5 +0.5) if ydiff >= 8 else 1
+        yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
     # plot incidence border lines
         limit = weeklyIncidenceLimit1Per100k * population / 100000
-        lns6_1 = ax_sum.plot([dates[7]] + [dates[-1]], [limit, limit], label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c', linestyle=(0, (3, 5)))
+        lns6_1 = ax_sum.plot([dates[7]] + [dates[-1]], [limit, limit],
+                             label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c',
+                             linestyle=(0, (3, 5)))
 
         # plot second incidence border only if first one is nearly reached, to have no unneeded large y1 numbers which would worsen the view
         if rolling_sum_max > limit * 0.8:
             limit = weeklyIncidenceLimit2Per100k * population / 100000
-            lns6_2 = ax_sum.plot([dates[7]] + [dates[-1]], [limit, limit], label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
+            lns6_2 = ax_sum.plot([dates[7]] + [dates[-1]], [limit, limit],
+                                 label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
         ax_sum.set_ylim(0, max(rolling_sum_max, limit) * PLOT_YLIM_ENLARGER)
 
         # set new ax limit for daily cases / averaging, trying to have evenly distributed major ticks for both y axes
+        #   this will work in many cases, but still some work would be todo to get all left/right major ticks in same grid
         ax.set_ylim(0, yloc()[-2])
         ax_sum.set_ylim(0, yloc2()[-2])
         yticks = yloc2()
@@ -181,11 +188,11 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
         # the '0.25'-multiplier below, for setting the y-position of the marker, is a none-deterministic evaluated value which lets the
         #   triangle marker's bottom point be placed nearly at the x-axis, for all of the 400+ Kreise with their different case numbers
-        yminor *= 0.25
+        yminor *= 1.3
+        ax_for_marker = ax_sum
 
-    lns3_1 = []
     if not isKreis:
-        #  get rolling averages for daily cases, over a wekk, if not a Kreis
+        #  plot rolling averages for daily cases, over a wekk, if not a Kreis
         window = 7
         rolling_mean = pandas.DataFrame(daily).rolling(window=window, center=True).mean()
         rmean_data = rolling_mean[0]
@@ -207,20 +214,19 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         ax_sum.tick_params(axis='y', width=0)
         ax_sum.set_yticklabels([])
 
-
-    # plot temporal center date marker
+    # plot marker for temporal center date
     center, signal = dataMangling.temporal_center(daily)
     center_date = datacolumns.values[int(round(center))]
 
     # (first a dummy marker just for later showing in legend with smaller symbol, gets plotted over with 2nd one)
-    lns4_1 = ax.plot(dates[int(round(center))], [yminor], marker="v", color='green', markersize=8, label="marker for 'expectation day': " + center_date,
-                      linestyle="")  # if markersize is an odd number, the triangle will be skewed
+    lns4_1 = ax_for_marker.plot(dates[int(round(center))], [yminor], marker="v", color='green', markersize=8, label="marker for 'expectation day': " + center_date,
+                                linestyle="")
     # (side note: if markersize here would be an odd number, the triangle would be skewed)
-    lns4_2 = ax.plot(dates[int(round(center))], [yminor], marker="v", color='green', markersize=16)
+    lns4_2 = ax_for_marker.plot(dates[int(round(center))], [yminor], marker="v", color='green', markersize=16)
 
     # build legend
     # collect lines which shall get a label in legend
-    lines = lns4_1 + lns5 + lns0 + lns1 + lns3_1 + lns3 + lns6_2 + lns6_1
+    lines = lns4_1 + lns5 + lns0 + lns1 + lns3 + lns6_2 + lns6_1
     labs = [l.get_label() for l in lines]
 
     # text for legend
@@ -255,19 +261,19 @@ def test_plot_Kreis(ts, bnn, dates, datacolumns):
     AGS = "0"
     # AGS = "1001"
     AGS = "5711"
-    # AGS = "9377"
+    # AGS = "3455"
 
     ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=False)
-    max_current_cumulative_100k = dataMangling.get_Kreise_max_current_cumulative_100k(bnn)
+    max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
 
-    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_current_cumulative_100k, ifPrint=False)
+    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint=False)
 
 
-def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_100k, ifPrint=True):
+def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True):
     done = []
     for AGS in Kreise_AGS:
         daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, AGS)
-        plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop, max_current_cumulative_100k=max_current_cumulative_100k,
+        plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop, max_prevalence_100k=max_prevalence_100k,
                         filename=filename, ifShow=False)
         done.append((title, filename))
         if ifPrint:
@@ -281,7 +287,7 @@ def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_
     return done
 
 
-def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_100k, ifPrint=True):
+def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True):
     import multiprocessing as mp
 
     # one CPU should be left free for the system, and multiprocessing makes only sense for at least 2 free CPUs,
@@ -291,14 +297,14 @@ def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cu
     wanted_cpus = available_cpus - leave_alone_cpus
 
     if available_cpus < wanted_cpus or wanted_cpus < 2:
-        return plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_current_cumulative_100k, ifPrint=ifPrint)
+        return plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=ifPrint)
 
     done = []
 
     # setup process pool
     pool = mp.Pool(wanted_cpus)
     try:
-        done = pool.starmap(plot_Kreise, [(ts, bnn, dates, datacolumns, [AGS], max_current_cumulative_100k, ifPrint) for AGS in Kreise_AGS])
+        done = pool.starmap(plot_Kreise, [(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint) for AGS in Kreise_AGS])
     except KeyboardInterrupt:
         # without catching this here we will never be able to manually stop running in a sane way
         pool.terminate()
@@ -314,19 +320,21 @@ def test_plot_Bundesland(ts, bnn, dates, datacolumns, Bundesland="Hessen"):
     # Bundesland = "Dummyland"
 
     ts_BuLa, Bundeslaender = dataMangling.join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
+    BL = Bundeslaender.drop(labels=['Deutschland', 'Dummyland'])
+    max_prevalence_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
+
     daily, cumulative, title, filename, population = dataMangling.get_BuLa(Bundeslaender, Bundesland, datacolumns)
-    plot_timeseries(datacolumns, dates, daily, cumulative, title, filename=filename)
+    plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_prevalence_100k, isKreis=False)
 
 
 def plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=True):
-
     ts_BuLa, Bundeslaender = dataMangling.join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
     filenames, population = [], 0
     done = []
 
     BL = Bundeslaender.drop(labels=['Deutschland', 'Dummyland'])
-    max_current_cumulative_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
-    # print(max_current_cumulative_100k)
+    max_prevalence_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
+    # print(max_prevalence_100k)
 
     for BL in Bundeslaender.index.tolist():
         print(BL, end=" ")
@@ -334,7 +342,7 @@ def plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=True):
         if BL == "Deutschland":
             filename = filename.replace("bundesland_", "")
         plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop_BL,
-                        filename=filename, max_current_cumulative_100k=max_current_cumulative_100k,
+                        filename=filename, max_prevalence_100k=max_prevalence_100k,
                         ifShow=False, isKreis=False)
         filenames.append(filename)
         population += pop_BL
