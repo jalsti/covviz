@@ -10,13 +10,13 @@ function scroll_rightmost() {
 		//console.log(element);
 		// var sLeft = element.scrollLeft;
 		// console.log(sLeft);
-		element.scrollLeft=2000;
+		element.scrollLeft=element.scrollWidth;
 	} catch { };
 	
 	
 	try{
 		var element = document.getElementById("tablediv_bundeslaender");
-		element.scrollLeft=2000;
+		element.scrollLeft=element.scrollWidth;
 	} catch { };
 }
 	
