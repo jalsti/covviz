@@ -194,11 +194,11 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         ax.grid(True, which='major', axis='y', ls='-', alpha=0.9)  # if not set here above, ticks of left side y axis won't be visible
         ax.grid(True, which='minor', axis='y', ls='--', alpha=0.7)
 
-    # determine some meaningfull y1 minor tick value, also used for setting center bar's y position
-    yticks = yloc()
-    ydiff = yticks[1]
-    yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
-    ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(yminor))
+        # determine some meaningfull y1 minor tick value, also used for setting center bar's y position
+        yticks = yloc()
+        ydiff = yticks[1]
+        yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
+        ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(yminor))
         # the '1.3'-multiplier below, for setting the y-position of the marker, is a none-deterministic evaluated value which lets the
         #   triangle marker's bottom point be placed nearly at the x-axis, for all of the 16 Bundeslaender with their different case numbers
         yminor *= 1.3
