@@ -266,15 +266,15 @@ def test_plot_Kreis(ts, bnn, dates, datacolumns):
     ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=False)
     max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
 
-    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint=False)
+    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint=False, ifShow=True)
 
 
-def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True):
+def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True, ifShow=False):
     done = []
     for AGS in Kreise_AGS:
         daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, AGS)
         plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop, max_prevalence_100k=max_prevalence_100k,
-                        filename=filename, ifShow=False)
+                        filename=filename, ifShow=ifShow)
         done.append((title, filename))
         if ifPrint:
             print(title, filename)
@@ -315,7 +315,7 @@ def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence
     return done
 
 
-def test_plot_Bundesland(ts, bnn, dates, datacolumns, Bundesland="Hessen"):
+def test_plot_Bundesland(ts, bnn, dates, datacolumns, Bundesland="Hessen", ifShow=True):
     ## Bundesland
     # Bundesland = "Dummyland"
 
@@ -324,7 +324,7 @@ def test_plot_Bundesland(ts, bnn, dates, datacolumns, Bundesland="Hessen"):
     max_prevalence_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
 
     daily, cumulative, title, filename, population = dataMangling.get_BuLa(Bundeslaender, Bundesland, datacolumns)
-    plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_prevalence_100k, isKreis=False)
+    plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_prevalence_100k, ifShow=ifShow, isKreis=False)
 
 
 def plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=True):
