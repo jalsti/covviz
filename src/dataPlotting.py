@@ -45,7 +45,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     # plotting color for 7-daily sums graph
     COLOR_INCID_SUMS = '#000060'
 
-    lns0, lns1, lns3, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2 = [], [], [], [], [], [], [], [], []
+    lns0, lns1, lns1_0, lns3, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2 = [], [], [], [], [], [], [], [], [], []
 
     fig, ax = plt.subplots(figsize=(10, 6))  # , constrained_layout=True)
 
@@ -67,11 +67,14 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     ax.xaxis.set_minor_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 30, 5)))
 
     # plot raw daily cases
-    lns1 = ax.plot(dates, daily, label="raw daily cases (weekend-flawed)", color='#888888')
+    red_days = 5 # '5' matches the minor ticks on x-axis
+    lns1 = ax.plot(dates, daily, label=f"raw daily cases (weekend-flawed), red: last {red_days}", color='#888888')
+    lns1_0 = ax.plot(dates[-red_days:], daily[-red_days:], color='red')
     # lns1 = ax.plot(dates, daily, label="daily cases (weekend-flawed), 2 weeks: red", color='#AAAAAA')
     # lns1_2 = ax.plot(dates[-14:], daily[-14:], label="daily cases, last 14 days dark gray", color='red')
     # print (len(dates[-14:]))
 
+    # plot background gradient, indicating relative prevalence
     if max_prevalence_100k is not None and not "Deutschland" in filename:
         # backgroud gradient indicating max values compared with global
         glob_max = max_prevalence_100k
