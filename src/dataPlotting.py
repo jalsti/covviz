@@ -280,7 +280,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     # text += "\ndaily: (GREEN) 'expectation day' = " + center_date
 
     # plot legend on top axis, and title
-    ax_for_marker.legend(lines, labs, loc='upper left', facecolor="#fafafa", framealpha=0.6, title=text, prop={'size': 8}, title_fontsize=8)
+    ax_for_marker.legend(lines, labs, loc='upper left', facecolor="#fafafa", framealpha=0.7, title=text, prop={'size': 8}, title_fontsize=8)
     plt.title(title)
 
     # set x axis major ticks to month starts
