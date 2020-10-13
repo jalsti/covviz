@@ -21,7 +21,10 @@ import matplotlib.dates as mp_dates
 import numpy as np
 import pandas
 
-matplotlib.use('Agg')  # to be able to plot without GUI, this must be set before importing pyplot
+# if environment variable MPL_NO_AGG is set to '1', we do not want to switch to no-GUI backend 'Agg' for plotting
+if not os.getenv('MPL_NO_AGG') == "1":
+    matplotlib.use('Agg')  # to be able to plot without GUI (e.g. on a headless server), this must be set before importing pyplot
+
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator as mpl_MultipleLocator, MaxNLocator as mpl_MaxNLocator
 from matplotlib.collections import LineCollection
