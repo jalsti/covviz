@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <!-- cov19de: combine selected images into one HTML table                                    -->
-<!-- this is version v02, and was improved on 31/Aug/2020                                    -->
+<!-- this is version v04, and was improved on 16/Oct/2020                                    -->
 
 <!-- example calls:                                                                          -->
 <!-- choice.html?loc=Deutschland,Nordrhein-Westfalen,05370,05558,05754,05111&cols=2          -->
@@ -14,7 +14,7 @@
 <html>
 <head>
 <style>
-#footer{
+#footer, #header{
       text-align:center;
 }
 img{
@@ -32,7 +32,7 @@ figure {
 <div id="footer"></div>
 
 <hr>
-Script version v03, done on 29/09/2020, see HTML source for instructions.
+Script version v04, done on 16.10.2020, see HTML source for instructions.
 
 </body>
 <script>
@@ -100,13 +100,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
         container.appendChild(figure);
     });
     footer = document.getElementById("footer");
+
     if(cols > 1) {
           al = document.createElement("a");
           al.text = "reduce number of images/row";
           al.href = document.location.href.replace("cols="+cols, "cols=" +(cols-1));
           footer.appendChild(al);
     }
-    footer.appendChild(document.createElement("br"));
+
+    if(cols > 1 && cols < locs.length) {
+        spacer = document.createElement("span")
+        spacer.innerHTML = "&nbsp;&nbsp;&mdash;&nbsp;&nbsp;"
+        header.appendChild(spacer.cloneNode(true));
+        footer.appendChild(spacer);
+    }
+
     if(cols < locs.length) {
           am = document.createElement("a");
           am.text = "enlarge number of images/row";
