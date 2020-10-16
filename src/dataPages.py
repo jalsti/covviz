@@ -141,7 +141,19 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
     
     page +='Click on name of Kreis to see detailed data. If not all visible, '
     page +='<a href="javascript:expand_table_div(\'tablediv_kreise\');">expand table area</a>, or use scrollbar.<p/>\n'
-    
+
+    AGS_str_list = ts_sorted[ts_sorted.Bundesland==BL_name].index.astype('str').to_list()
+    if "0" in AGS_str_list:
+        # remove Dummyland, if in list
+        AGS_str_list.remove("0")
+    # cleaned_BL_names = BL_names[:].remove('Dummyland')
+    # locs=",".join(BL_names[:] + AGS_str_list[:])
+    locs=",".join(AGS_str_list[:])
+    page += CHOICES_ITEMS_JS_STUB.format(choice_id="all_district_plots", locs=locs, cols=4,
+                                         title="covviz plots of all %d %s\\'s Kreise \(districts\), sorted by expectation day" % (len(AGS_str_list), BL_name),
+                                         linktext="Open overview of (only) the plots of all %d %s\\'s Kreise \(districts\) in a new window." % (len(AGS_str_list), BL_name))
+
+
     districtsHTML = dataTable.Districts_to_HTML_table(ts_sorted, datacolumns, bnn, 
                                                       district_AGSs, cmap, filename=None, 
                                                       rolling_window_size=5, header="\n", footer="\n")
@@ -359,17 +371,21 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     page +="Click on name of Kreis (or Bundesland) to see detailed data. To see all of them, "
     page +='<a href="javascript:expand_table_div(\'tablediv_kreise\');">expand table area</a>, or use scrollbar.<p/>\n'
 
-    district_AGSs = ts_sorted.index.tolist()
-    fn, kreiseHTML = dataTable.Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, filename="kreise_Germany.html", header="\n", footer="\n")
-    page += kreiseHTML
-
-    AGS_str_list = ts_sorted.index.astype('str').to_list()[:-1]
+    AGS_str_list = ts_sorted.index.astype('str').to_list()
+    if "0" in AGS_str_list:
+        # remove Dummyland, if in list
+        AGS_str_list.remove("0")
     # cleaned_BL_names = BL_names[:].remove('Dummyland')
     # locs=",".join(BL_names[:] + AGS_str_list[:])
     locs=",".join(AGS_str_list[:])
     page += CHOICES_ITEMS_JS_STUB.format(choice_id="all_district_plots", locs=locs, cols=4,
                                          title="covviz plots of all 401 german Kreise \(districts\), sorted by expectation day",
-                                         linktext="Open plots of all 401 german Kreise \(districts\) in a new window.")
+                                         linktext="Open overview of (only) the plots of all 401 german Kreise \(districts\) in a new window.")
+
+    district_AGSs = ts_sorted.index.tolist()
+    fn, kreiseHTML = dataTable.Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, filename="kreise_Germany.html", header="\n", footer="\n")
+    page += kreiseHTML
+
     page +='<br/><a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
     page +=GOOGLESHEET_HTML

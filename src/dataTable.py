@@ -18,11 +18,10 @@ import os, datetime
 
 import pandas
 import numpy
-from matplotlib import pyplot as plt
-import matplotlib 
+import matplotlib
 
 
-import dataFiles, dataMangling, dataPlotting, districtDistances
+import dataFiles, dataMangling, districtDistances
 
 
 
@@ -36,16 +35,20 @@ def toHTMLRow(ts_sorted, row_index, datacolumns, cmap, labels, rolling_window_si
     diff_rolling_mean = pandas.DataFrame(rolling_mean_cum).diff(axis=0).clip(lower=0)[row_index].tolist()
     diffmax = numpy.nanmax(diff_rolling_mean)
     
+    row = row.iloc[::-1]
+    diff_rolling_mean.reverse()
+
     cumulative=row.tolist()
     line="<tr>"
+
+    for label in labels:
+        line+="<td>%s</td>" % label
+
     for c, d in zip(cumulative, diff_rolling_mean):
         #                                    avoid extreme colors, shifted towards red: 0.30-0.80
         rgb = matplotlib.colors.to_hex(cmap( 0.30+(d/diffmax)*0.50 ))
         
-        line+='<td bgcolor="%s"><span>%d</span></td>' % (rgb, c)
-        
-    for label in labels:
-        line+="<td>%s</td>" % label
+        line+='<td bgcolor="%s"><span>%d</span></td> ' % (rgb, c)
         
     return line + "</tr>"
     
@@ -84,6 +87,7 @@ th
   vertical-align: middle;
   text-align: center;
   border: 1px solid black;
+  min-width: 18px;
 }
 
 th span
@@ -144,7 +148,7 @@ th span
 <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed|Teko&display=swap" rel="stylesheet">
 
 </head>
-<body onload="scroll_rightmost()">
+<body>
 """
 
 # It is a best practice to put JavaScript <script> tags 
@@ -152,10 +156,11 @@ th span
 # rather than in the <head> section of your HTML. 
 # The reason for this is that HTML loads from top to bottom. 
 # The head loads first, then the body, and then everything inside the body.
- 
+
+# FIXME: that JS table sorting seems to be a bubble sort with directly manipulating the existing huge DOM on each switch.
+#  (Maybe we should insert some timeouts on each switch step, as the only thinkable possibility to get it even slower. ;-))
 PAGE_END="""
 <script type="text/javascript" src="sort-table.js"></script>
-<script type="text/javascript" src="scroller.js"></script>
 </body>
 </html>
 """
@@ -192,11 +197,10 @@ def Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, fi
     caption="Click on column header name, to sort by that column; click again for other direction."
     page += '<caption id="caption_kreise" style="text-align:right;">%s</caption>\n' % caption
     page +="<tr>"
+
+    dc_head = datacolumns.tolist()
+    dc_head.reverse()
     
-    for col in datacolumns:
-        page += "<th><span>%s</span></th>" % col
-    
-    colcount=len(datacolumns)
     # print (datacolumns, colcount); exit()
     cols = [("total cases", True),
             ("7days new cases", True),
@@ -209,15 +213,18 @@ def Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, fi
             ("Reff_4_7", True),
             ("Bundesland", True),
             ("info", False) ] 
-    
+
     for i, col in enumerate(cols):
         colName, sorting = col
         if sorting:
-            cellid = "\'%shc%d\'" % (tid, i + colcount)
-            page += '<th onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i + colcount, cellid, cellid, colName)
+            cellid = "\'%shc%d\'" % (tid, i)
+            page += '<th onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
         else:
             page += '<th>%s</th>' % (colName)
-            
+
+    for col in dc_head:
+        page += "<th><span>%s</span></th>" % col
+
     page +="</tr>"
     
     for AGS in district_AGSs:
@@ -271,17 +278,20 @@ def BuLas_to_HTML_table(Bundeslaender, datacolumns, BL_names, cmap, table_filena
     page += '<caption style="text-align:right;">%s</caption>' % caption
     page +="<tr>"
 
-    for col in datacolumns:
-        page += "<th><span>%s</span></th>" % col
-    colcount=len(datacolumns)
-       
+    dc_head = datacolumns.tolist()
+    dc_head.reverse()
+
     cols = ["7days new cases", "Bundesland", "info", "Prev. p.1mio", "7days Incid.p.1mio", "Population", "expectation day", "Reff_4_7" ]
-    
+
     for i, colName in enumerate(cols):
-        cellid = "\'%shc%d\'" % (tid, i + colcount)
-        page += '<th onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i + colcount, cellid, cellid, colName)
+        cellid = "\'%shc%d\'" % (tid, i)
+        page += '<th onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
+
+    for col in dc_head:
+        page += "<th><span>%s</span></th>" % col
+
     page +="</tr>"
-    
+
     for name_BL in BL_names:
         labels=[]
         daily, cumulative, title, filename, pop_BL = dataMangling.get_BuLa(Bundeslaender, name_BL, datacolumns)
@@ -345,8 +355,8 @@ if __name__ == '__main__':
     
     print ( toHTMLRow(ts_sorted, AGS, datacolumns, cmap, labels=["%s" % AGS]) ) 
 
-    district_AGSs = [1001, 1002, 5370, 9377]
-    district_AGSs = ts_sorted.index.tolist()
+    district_AGSs = [5711, 1002, 5370, 9377]
+    # district_AGSs = ts_sorted.index.tolist()
     
     distances = districtDistances.load_distances()
     print (Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, divEnveloped=False)[0])
