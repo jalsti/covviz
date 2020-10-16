@@ -37,7 +37,9 @@ weeklyIncidenceLimit1Per100k = 35
 weeklyIncidenceLimit2Per100k = 50
 
 
-def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_prevalence_100k=None, ifShow=True, ifCleanup=True, isKreis=True):
+
+def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population,
+                    max_prevalence_100k=None, ifShow=True, ifCleanup=True, isKreis=True, incidences=None):
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
     # enlarger for y-limits of axis' tick ranges to not plot too close to top
@@ -181,18 +183,18 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         # move total cases y axis away to outside
         ax_cumu.spines["right"].set_position(("axes", 1.15))
 
-        # sum calculation and plotting
+        # incidences graph plotting
         window = 7
         label = 'sum of daily cases, for prior %s days of date' % window
-        rolling_sum = pandas.DataFrame(daily).rolling(window=window, center=False).sum()
-        rolling_sum_max = rolling_sum[0].max()
+
+        incidence_max = max(incidences)
 
         # plot yellow background for sum graph, then graph over it
-        ax_sum.plot(dates, rolling_sum, label=label, color='yellow', linewidth=7, alpha=0.4)
-        lns0 = ax_sum.plot(dates, rolling_sum, label=label, color=COLOR_INCID_SUMS)
+        ax_sum.plot(dates, incidences, label=label, color='yellow', linewidth=7, alpha=0.4)
+        lns0 = ax_sum.plot(dates, incidences, label=label, color=COLOR_INCID_SUMS)
 
         # set axis properties
-        ax_sum.set_ylim(0, rolling_sum_max * PLOT_YLIM_ENLARGER_DAILYS)
+        ax_sum.set_ylim(0, incidence_max * PLOT_YLIM_ENLARGER_DAILYS)
         # also yellow background for label
         ax_sum.set_ylabel(label + "\n(to determine incidence borders)", color=COLOR_INCID_SUMS,
                           bbox=dict(color='yellow', alpha=0.3, boxstyle='round', mutation_aspect=0.5))
@@ -218,12 +220,12 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
                              linestyle=(0, (3, 5)))
 
         # plot second incidence border only if first one is nearly reached, to have no unneeded large y1 numbers which would worsen the view
-        if rolling_sum_max > limit * 0.8:
+        if incidence_max > limit * 0.8:
             limit = weeklyIncidenceLimit2Per100k * population / 100000
             lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
                                  label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
-        ax_sum.set_ylim(0, max(rolling_sum_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
+        ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
 
         # set new ax limit for daily cases / averaging, trying to have evenly distributed major ticks for both y axes
         #   this will work in many cases, but still some work would be todo to get all left/right major ticks in same grid
@@ -310,15 +312,15 @@ def test_plot_Kreis(ts, bnn, dates, datacolumns):
     ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=False)
     max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
 
-    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint=False, ifShow=True)
+    plot_Kreise(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint=False, ifShow=True, ifCleanup=False)
 
 
-def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True, ifShow=False):
+def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True, ifShow=False, ifCleanup=True):
     done = []
     for AGS in Kreise_AGS:
-        daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, AGS)
+        daily, cumulative, title, filename, pop, incidences = dataMangling.get_Kreis(ts, bnn, AGS)
         plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop, max_prevalence_100k=max_prevalence_100k,
-                        filename=filename, ifShow=ifShow)
+                        filename=filename, ifShow=ifShow, ifCleanup=ifCleanup, incidences=incidences)
         done.append((title, filename))
         if ifPrint:
             print(title, filename)
