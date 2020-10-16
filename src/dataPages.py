@@ -362,7 +362,10 @@ def Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn, filenam
     fn, kreiseHTML = dataTable.Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, filename="kreise_Germany.html", header="\n", footer="\n")
     page += kreiseHTML
 
-    AGS_str_list = ts_sorted.index.astype('str').to_list()[:-1]
+    AGS_str_list = ts_sorted.index.astype('str').to_list()
+    if 0 in AGS_str_list:
+        # remove Dummyland, if in list
+        AGS_str_list.remove(0)
     # cleaned_BL_names = BL_names[:].remove('Dummyland')
     # locs=",".join(BL_names[:] + AGS_str_list[:])
     locs=",".join(AGS_str_list[:])
