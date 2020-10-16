@@ -50,8 +50,8 @@ RISKLAYER_URL01 = "http://risklayer-explorer.com/media/data/events/GermanyValues
 #
 # https://docs.google.com/spreadsheets/d/1EZNqMVK6hCccMw4pq-4T30ADJoayulgx9f98Vui7Jmc/gviz/tq?tqx=out:csv&range=A5:AU406&sheet=Haupt
 GOOGLEDOCS_ToCSV_WithSheetname="https://docs.google.com/spreadsheets/d/%s/gviz/tq?tqx=out:csv&sheet=%s&range=%s"
-RISKLAYER_MASTER_SHEET_20200521 = "1EZNqMVK6hCccMw4pq-4T30ADJoayulgx9f98Vui7Jmc" # last night snapshot
-RISKLAYER_MASTER_SHEET = "1wg-s4_Lz2Stil6spQEYFdZaBEp8nWW26gVyfHqvcl8s" # Risklayer master
+# RISKLAYER_MASTER_SHEET_20200521 = "1EZNqMVK6hCccMw4pq-4T30ADJoayulgx9f98Vui7Jmc" # last night snapshot
+RISKLAYER_MASTER_SHEET = "1wg-s4_Lz2Stil6spQEYFdZaBEp8nWW26gVyfHqvcl8s" # Risklayer master: https://docs.google.com/spreadsheets/d/1wg-s4_Lz2Stil6spQEYFdZaBEp8nWW26gVyfHqvcl8s
 RISKLAYER_MASTER_SHEET_TABLE = ("Haupt", "A5:AU406")
 # the columns containing the web-URL-sources changed over time:
 QUELLEN_SPALTEN={"v01": ['Quelle 1', 'Gestrige Quellen', 'Quelle (Sollte nur Landesamt, Gesundheitsamt oder offiziell sein)', 'TWITTER', 'FACEBOOK/INSTAGRAM', 'Names'],
@@ -332,6 +332,8 @@ def read_as_CSV_or_as_SSV(filename, encoding='utf-8'):
     rows, cols = len(ts), len(ts.columns)
     print ("(rows, cols) = (%s, %s)" % (rows, cols), end=" ")
 
+    # TODO: this should not be necessary, as long as above no sep is given:
+    #  → https://pandas.pydata.org/pandas-docs/version/1.0.3/reference/api/pandas.read_csv.html?highlight=read_csv#pandas.read_csv
     if cols == 1:
         print ("\n\nALERT: ERROR in source file: 1 column. Not comma-separated" \
                " but semicolon-separated?? (Happened first on Aug 4th). Trying that now:")
@@ -568,7 +570,7 @@ def save_csv_twice(df, filestump=HAUPT_FILES):
     return existed, (filename1, filename2)
 
 
-def get_master_sheet_haupt(sheetID=RISKLAYER_MASTER_SHEET_20200521):
+def get_master_sheet_haupt(sheetID=RISKLAYER_MASTER_SHEET):
     """
     download risklayer master sheet, process, and save twice.
     returns whether that timestamped file existed already.
