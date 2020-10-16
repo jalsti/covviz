@@ -28,6 +28,7 @@ figure {
 </style>
 </head>
 <body>
+<div id="header"></div>
 <div id="container"></div>
 <div id="footer"></div>
 
@@ -74,9 +75,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       if(params.title)
             head = document.getElementsByTagName("head")[0].insertAdjacentHTML("afterbegin", "<title>" + String(params.title) + "</title>")
-          
+
     locs.forEach((l) => {
-        const figure = document.createElement("figure"), 
+        const figure = document.createElement("figure"),
               a = document.createElement("a"),
               i = new Image();
         if(cols > 0 && cols <= locs.length){
@@ -99,12 +100,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         figure.appendChild(a);
         container.appendChild(figure);
     });
+
+    header = document.getElementById("header");
     footer = document.getElementById("footer");
 
     if(cols > 1) {
           al = document.createElement("a");
           al.text = "reduce number of images/row";
           al.href = document.location.href.replace("cols="+cols, "cols=" +(cols-1));
+          header.appendChild(al.cloneNode(true));
           footer.appendChild(al);
     }
 
@@ -119,6 +123,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
           am = document.createElement("a");
           am.text = "enlarge number of images/row";
           am.href = document.location.href.replace("cols="+cols, "cols=" +(cols+1));
+          header.appendChild(am.cloneNode(true));
           footer.appendChild(am);
     }
 });
