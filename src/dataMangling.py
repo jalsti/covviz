@@ -147,7 +147,9 @@ def get_Kreis(ts, bnn, AGS):
     filename = "Kreis_" + ("00000"+AGS)[-5:] + ".png"
     daily = AGS_to_ts_daily(ts, AGS)
     cumulative = AGS_to_ts_total(ts, AGS)
-    return daily, cumulative, title, filename, pop
+    incidences = pandas.DataFrame(daily).rolling(window=7).sum()
+    incidences = list(map(int,incidences.fillna(0).values))
+    return daily, cumulative, title, filename, pop, incidences
 
 
 def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
@@ -443,7 +445,7 @@ def test_some_mangling():
     # exit()
 
     print ("\nKreis")
-    daily, cumulative, title, filename, pop = get_Kreis(ts, bnn, AGS)
+    daily, cumulative, title, filename, pop, incidences = get_Kreis(ts, bnn, AGS)
     print (daily, cumulative)
     print (title, filename, pop)
 

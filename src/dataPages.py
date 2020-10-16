@@ -153,7 +153,7 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
 
     for AGS in district_AGSs:
         gen, bez, inf, pop = dataMangling.AGS_to_population(bnn, AGS)
-        daily, cumulative, title, filename, pop = dataMangling.get_Kreis(ts, bnn, str(AGS))
+        daily, cumulative, title, filename, pop, incidences = dataMangling.get_Kreis(ts, bnn, str(AGS))
         
         nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(bnn, distances, AGS, km)
         AGS_5digits = ("00000%s" % AGS) [-5:] 
@@ -192,6 +192,7 @@ def bundesland(BL_name, filename_PNG, title, pop_BL, cumulative, filename_HTML, 
             kreis = kreissitz = gen # we have that wikipedia info about kreissitz only for 294 out of 401, for remainder fall back to kreis name
         page += ", " + search_URLs(kreis, kreissitz)
         page +='<br/>total cases: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % (list(map(int, cumulative)))
+        page +='<br/>incidence sums: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % (incidences)
         page += "<p/>"
         page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
