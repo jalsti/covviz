@@ -167,6 +167,7 @@ def repairData(ts):
     ts=remove_unnecessary_columns(ts)
 
     newcols = ["12.03.2020" if x=="12.03.20203" else x for x in ts.columns]
+    newcols = ["19.10.2020" if x=="18.10.20202" else x for x in newcols]
     if newcols!=ts.columns.tolist():
         print ("found and fixed 12.03.20203 --> 12.03.2020 (problem since 25/4/2020)")
 
