@@ -46,18 +46,18 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
                             (should be given accordingly to make sense for later wished minor ticks)
     """
 
-    large_multiple_of = multiple_of * 100
+    # large_multiple_of = multiple_of * 50
 
     # change all axes y ticks so that they are the nearest multiples of `multiple_of`
     for ax in [base_ax] + adjust_axs:
         yticks = ax.get_yticks()
         val_at_max_yticks = max(yticks)
-        print(f"to mod: \n\t{ax.name}, {yticks}")
+        # print(f"to mod: \n\t{ax.name}, {yticks}")
 
         # too small y values will get bad results below, artificially enlarge the max for them
         min_y = 20
         if val_at_max_yticks < min_y:
-            print(f"val_at_max_yticks < min_y")
+            # print(f"val_at_max_yticks < min_y")
             yticks = np.linspace(0, min_y, 5).astype(int).tolist()
             org_step = step = 5
         else:
@@ -72,16 +72,16 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
             # some tick count tweaking, just do on all, although base maybe would be enough
             # too many ticks will get unesthetic results, halve them (through doubling steps)
             if val_at_max_yticks / step >= 11:
-                print("enlarging step")
+                # print("enlarging step")
                 step *= 2
-            elif val_at_max_yticks > 1000 and len(yticks) <= 6:
-                # too less ticks are ugly too, for large numbers
-                print("reducing step")
-                step = val_at_max_yticks / 6
-                if (mod_multiple_of := org_step % large_multiple_of) > org_step / 0.5 :
-                    step = step + large_multiple_of - mod_multiple_of
-                else:
-                    step = step - mod_multiple_of if org_step > large_multiple_of else large_multiple_of
+            # elif val_at_max_yticks > 5000 and len(yticks) <= 6:
+            #     # too less ticks are ugly too, for large numbers
+            #     # print("reducing step")
+            #     step = val_at_max_yticks / 6
+            #     if (mod_multiple_of := org_step % large_multiple_of) > org_step / 0.5 :
+            #         step = step + large_multiple_of - mod_multiple_of
+            #     else:
+            #         step = step - mod_multiple_of if org_step > large_multiple_of else large_multiple_of
 
 
         # set `yticks` and `ylim` with above calculated values
@@ -89,25 +89,25 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
         ax.set_yticks(list(range(0, max_range, int(step))))
         ax.set_ylim(0, ax.get_yticks()[1] * (len(ax.get_yticks())-1))
 
-        print(f"\t{ax.name}, {ax.get_yticks()}, {step=}")
+        # print(f"\t{ax.name}, {ax.get_yticks()}, {step=}")
 
 
     # change `adjust_axs` y tick counts to match the one of `base_ax`
     target_ticks = len(base_ax.get_yticks())
     for ax in adjust_axs:
-        print(f"ticks: \n\t{ax.name}, {ax.get_yticks()}, {target_ticks=}")
+        # print(f"ticks: \n\t{ax.name}, {ax.get_yticks()}, {target_ticks=}")
 
         max_ticks_val = ax.get_yticks()[-1]
         new_ticks = np.linspace(0, max_ticks_val, target_ticks) # let numpy build the range, but check  the values below
 
-        print(f"\t{ax.name}, {new_ticks=}")
+        # print(f"\t{ax.name}, {new_ticks=}")
 
         # enlarge maximum y value, if the lowest one is no modulo of `multiple_of`
-        multip = multiple_of if new_ticks[-1] < 1000 else large_multiple_of
+        multip = multiple_of# if new_ticks[-1] < 5000 else large_multiple_of
         if not (mod_multiple_of := new_ticks[1] % multip) == 0:
             max_ticks_val = (new_ticks[1] + multip - mod_multiple_of) * (target_ticks - 1)
             new_ticks = np.linspace(0, max_ticks_val, target_ticks)
-            print(f"\t{ax.name}, {new_ticks=}")
+            # print(f"\t{ax.name}, {new_ticks=}")
 
         # set `yticks` and `ylim` with above calculated values
         ax.set_yticks(new_ticks)
@@ -119,8 +119,8 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
     # enlarger for y-limits of axis' tick ranges to not plot too close to top
-    PLOT_YLIM_ENLARGER_DAILYS = 1.3  # if this is too low (e.g. 1.2), chances are good that some daily graphs go beyond the top, due to below manual changes to automatic ticks
-    PLOT_YLIM_ENLARGER_CUMU = 1.1
+    PLOT_YLIM_ENLARGER_DAILYS = 1.2  # if this is too low (e.g. 1.2), chances are good that some daily graphs go beyond the top, due to below manual changes to automatic ticks
+    PLOT_YLIM_ENLARGER_CUMU = 1.02
     # plotting color for 7-daily sums graph
     COLOR_INCID_SUMS = '#2020D0'
 
@@ -366,7 +366,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     ax.xaxis.set_major_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 32, 31)))  # if placing this setting above all other, major ticks won't appear
     ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m"))  # its date formatter must be set, if setting major locator
 
-    print(title)
+    # print(title)
     if isKreis:
         equalize_axes_ticks(base_ax=ax_sum, adjust_axs=[ax, ax_cumu])
     else:
