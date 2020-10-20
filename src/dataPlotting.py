@@ -21,8 +21,8 @@ import matplotlib.dates as mp_dates
 import numpy as np
 import pandas
 
-# if environment variable MPL_NO_AGG is set to '1', we do not want to switch to no-GUI backend 'Agg' for plotting
-if not os.getenv('MPL_NO_AGG') == "1":
+# if environment variable MPLBACKEND (to manually set a backend for matplotlib) is empty, we do want to switch to the no-GUI backend 'Agg'
+if os.getenv('MPLBACKEND') == "":
     matplotlib.use('Agg')  # to be able to plot without GUI (e.g. on a headless server), this must be set before importing pyplot
 
 from matplotlib import pyplot as plt
