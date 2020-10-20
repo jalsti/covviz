@@ -46,6 +46,8 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
                             (should be given accordingly to make sense for later wished minor ticks)
     """
 
+    large_multiple_of = multiple_of * 100
+
     # change all axes y ticks so that they are the nearest multiples of `multiple_of`
     for ax in [base_ax] + adjust_axs:
         yticks = ax.get_yticks()
@@ -73,9 +75,14 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
                 print("enlarging step")
                 step *= 2
             elif val_at_max_yticks > 1000 and len(yticks) <= 6:
-                # too less ticks are ugly too for large numbers
+                # too less ticks are ugly too, for large numbers
                 print("reducing step")
-                step /= 2
+                step = val_at_max_yticks / 6
+                if (mod_multiple_of := org_step % large_multiple_of) > org_step / 0.5 :
+                    step = step + large_multiple_of - mod_multiple_of
+                else:
+                    step = step - mod_multiple_of if org_step > large_multiple_of else large_multiple_of
+
 
         # set `yticks` and `ylim` with above calculated values
         max_range = int(len(yticks) * org_step)
@@ -96,8 +103,9 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
         print(f"\t{ax.name}, {new_ticks=}")
 
         # enlarge maximum y value, if the lowest one is no modulo of `multiple_of`
-        if not (mod_multiple_of := new_ticks[1] % multiple_of) == 0:
-            max_ticks_val = (new_ticks[1] + multiple_of - mod_multiple_of) * (target_ticks - 1)
+        multip = multiple_of if new_ticks[-1] < 1000 else large_multiple_of
+        if not (mod_multiple_of := new_ticks[1] % multip) == 0:
+            max_ticks_val = (new_ticks[1] + multip - mod_multiple_of) * (target_ticks - 1)
             new_ticks = np.linspace(0, max_ticks_val, target_ticks)
             print(f"\t{ax.name}, {new_ticks=}")
 
