@@ -36,9 +36,9 @@ def do_it(a=True, b=True, c=True, d=True):
 
 if __name__ == '__main__':
     
-    do_it()
+    # do_it()
     # do_it(a=False, d=False)
-    # daily.daily_update(regenerate_pages_regardless_if_new_data=True, regenerate_plots_regardless_if_new_data=True,
-    #              publish=False, showExtremes=True, withSyntheticData=True, downloadNewData=False)
+    daily.daily_update(regenerate_pages_regardless_if_new_data=True, regenerate_plots_regardless_if_new_data=True,
+                 publish=False, showExtremes=True, withSyntheticData=True, downloadNewData=False)
    
     print ("\nREADY.")
