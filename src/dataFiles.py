@@ -174,19 +174,19 @@ def repairData(ts):
         if col_fixed == "12.03.20203":
             col_fixed = "12.03.2020"
 
-     if len(col_fixed) > 10:   # fixes dates like '18.10.20202', '19.10.20202' which are meant to be on day further
+        elif len(col_fixed) > 10:   # fixes dates like '18.10.20202', '19.10.20202' which are meant to be on day further
             dt = datetime.datetime.strptime(col[:10], "%d.%M.%Y")
             dt += datetime.timedelta(days=1)
             col_fixed = dt.strftime("%d.%M.%Y")
-            # print(f"{col=}, {dt=}, {col_fixed=}")
 
         elif col_fixed == 'ï»¿AGS': # (problem after 29/4/2020)
             col_fixed = 'AGS'
 
-    if col != col_fixed:
-        print(f"found and fixed bad column header: '{col}' -> '{col_fixed}'")
-    newcols.append(col_fixed)
-    #print(newcols)
+        if col != col_fixed:
+            print(f"found and fixed bad column header: '{col}' -> '{col_fixed}'")
+
+        newcols.append(col_fixed)
+
     ts.columns = newcols
 
     before = ts[ts["AGS"]=="05370"]["27.04.2020"]
