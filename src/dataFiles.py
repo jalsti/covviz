@@ -166,17 +166,28 @@ def repairData(ts):
 
     ts=remove_unnecessary_columns(ts)
 
-    newcols = ["12.03.2020" if x=="12.03.20203" else x for x in ts.columns]
-    newcols = ["19.10.2020" if x=="18.10.20202" else x for x in newcols]
-    if newcols!=ts.columns.tolist():
-        print ("found and fixed 12.03.20203 --> 12.03.2020 (problem since 25/4/2020)")
+    # try to filter known column name problems
+    newcols = []
+    for col in ts.columns:
+        col_fixed = col
 
-    newcols2 = ["AGS" if x=='ï»¿AGS' else x for x in newcols]
-    if newcols2!=newcols:
-        print ("found and fixed ï»¿AGS --> AGS  (problem since 29/4/2020)")
+        if col_fixed == "12.03.20203":
+            col_fixed = "12.03.2020"
 
-    ts.columns = newcols2
+     if len(col_fixed) > 10:   # fixes dates like '18.10.20202', '19.10.20202' which are meant to be on day further
+            dt = datetime.datetime.strptime(col[:10], "%d.%M.%Y")
+            dt += datetime.timedelta(days=1)
+            col_fixed = dt.strftime("%d.%M.%Y")
+            # print(f"{col=}, {dt=}, {col_fixed=}")
 
+        elif col_fixed == 'ï»¿AGS': # (problem after 29/4/2020)
+            col_fixed = 'AGS'
+
+    if col != col_fixed:
+        print(f"found and fixed bad column header: '{col}' -> '{col_fixed}'")
+    newcols.append(col_fixed)
+    #print(newcols)
+    ts.columns = newcols
 
     before = ts[ts["AGS"]=="05370"]["27.04.2020"]
     after  = ts[ts["AGS"]=="05370"]["28.04.2020"]
