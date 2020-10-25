@@ -619,7 +619,9 @@ def load_master_sheet_haupt(filestump=HAUPT_FILES, timestamp="-20200520_211500",
     df = pandas.read_csv(filename)
     daysum=df["Fälle Heute bis 00Uhr"].sum()
     print ("Sum", daysum, end=" ")
-    lastEntry=pandas.to_datetime(df.Zeit).max()
+    # fix bad time entry
+    zeit = df.Zeit.replace('25/10/0202 00:00', '25/10/2020 00:00')
+    lastEntry=pandas.to_datetime(zeit).max()
     print ("Last entry was:", lastEntry)
     df=add_urls_column(df, hauptversion=hauptversion)
     print ("added urls column with all websources combined")
