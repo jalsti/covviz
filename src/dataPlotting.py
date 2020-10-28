@@ -12,6 +12,7 @@
           See: todo.md for ideas what else to do. 
           NOT yet: pretty. But it works.
 """
+from typing import Union
 
 import datetime
 import os
@@ -112,8 +113,11 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
         ax.set_ylim(0, new_ticks[1] * (len(new_ticks)-1))
 
 
-def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population,
-                    max_prevalence_100k=None, ifShow=True, ifCleanup=True, isKreis=True, incidences=None):
+
+def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.District, dataMangling.FedState], ifShow=True, ifCleanup=True, limitIncidencePerWeekPerMillion=500):
+
+    dates = dm.dates
+    daily = plot_item.daily
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
     # enlarger for y-limits of axis' tick ranges to not plot too close to top
@@ -135,7 +139,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     # ax for background gradient
     ax_bg: plt.Axes = ax.twinx()
     ax_bg.name = "background"
-    ax_bg.set_ylim(0, cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS)
+    ax_bg.set_ylim(0, plot_item.cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS)
     ax_bg.grid(False)
     ax_bg.tick_params(axis='y', width=0)
     ax_bg.set_yticklabels([])
@@ -150,7 +154,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     ax_for_marker = ax
 
     # if isKreis, add axis for daily sums (with seperate y-axis), set z-order, use for marker
-    if isKreis:
+    if type(plot_item) == dataMangling.District:
         ax_sum: plt.Axes = ax.twinx()
         ax_sum.name = "sum incidences"
         ax_sum.set_zorder(4)
@@ -172,19 +176,19 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
 
     #
     # plot background gradient, indicating relative prevalence
-    if max_prevalence_100k is not None and not "Deutschland" in filename:
+    if plot_item.max_prevalence_100k is not None and not "Deutschland" in plot_item.filename:
         # backgroud gradient indicating local max prevalence values compared with global
-        glob_max = max_prevalence_100k
+        glob_max = plot_item.max_prevalence_100k
         mid = mp_dates.date2num(dates)[int(len(dates) / 2)]  # get middle point of the dates as plot start point
         # create some artificially plotting points, at the x-middle point of the dates, from zero up the y-axis' maximum
-        points = np.array([[mid] * len(dates), np.linspace(0, cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS, len(dates))]).T.reshape(-1, 1, 2)
+        points = np.array([[mid] * len(dates), np.linspace(0, plot_item.cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS, len(dates))]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1) # create lines from neighbour to neighbour of elements in 'points'
         # set proportion for colors, matching plot item's own 100k prevalence
-        proportion = np.linspace(0, max(cumulative / population * 100000) * PLOT_YLIM_ENLARGER_DAILYS, len(dates))
+        proportion = np.linspace(0, max(plot_item.cumulative / plot_item.population * 100000) * PLOT_YLIM_ENLARGER_DAILYS, len(dates))
         # set norm to match global max, shooting the colors over the plot item's max, if it is not the global prevalence max itself
         #   this norm together with the max of 'proportion' is basically the core, to indicate the relative prevalence
         norm = plt.Normalize(0, glob_max)
-        cmap = 'YlOrRd' if isKreis else 'Reds'
+        cmap = 'YlOrRd' if type(plot_item) == dataMangling.District else 'Reds'
         lc = LineCollection(segments, cmap=cmap, norm=norm, alpha=0.4)
         lc.set_array(proportion)
         lc.set_linewidth(6 * fig.dpi) # plot with enough width to fill the background horizontally
@@ -196,7 +200,7 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
 
     #
     # plot raw daily cases
-    if not isKreis:
+    if not type(plot_item) == dataMangling.District:
         ax.plot(dates, daily, color='w', linewidth=7, alpha=0.1) # plot white background for next line
     red_days = 5 # '5' matches the minor ticks on x-axis
     lns1 = ax.plot(dates, daily, label=f"raw daily cases (weekend-flawed), red: last {red_days}", color='#B0B0B0', zorder=1)
@@ -369,10 +373,6 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
         equalize_axes_ticks(base_ax=ax_sum, adjust_axs=[ax, ax_cumu])
     else:
         equalize_axes_ticks(base_ax=ax, adjust_axs=[ax_cumu])
-
-    if filename:
-        fig.savefig(os.path.join(dataFiles.PICS_PATH, filename), bbox_inches='tight')
-
     if ifShow:
         if plt.get_backend() in  matplotlib.rcsetup.interactive_bk:# ['qt5agg', 'tkagg']:
             # at least above backends would not show the out ax_cumu spline, it not tight_layout() set
@@ -386,28 +386,25 @@ def plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, popu
     return plt, fig, ax, ax_cumu
 
 
-def test_plot_Kreis(ts, bnn, dates, datacolumns, AGS=["5711"]):
+def test_plot_Kreis(dm):
     ## Kreis
-    # AGS = "0"
-    # AGS = "1001"
-    # AGS = "5711"
-    # AGS = "3455"
-
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=False)
-    max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
+    AGS = "0"
+    #AGS = "1001"
+    AGS = "5370"
+    # AGS = "9377"
+    dstr = dataMangling.get_Kreis(dm, AGS)
+    plot_timeseries(dm, dstr)
 
     plot_Kreise(ts, bnn, dates, datacolumns, AGS, max_prevalence_100k, ifPrint=False, ifShow=True, ifCleanup=False)
 
-
-def plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True, ifShow=False, ifCleanup=True):
+def plot_Kreise(dm, Kreise_AGS, ifPrint=True):
     done = []
     for AGS in Kreise_AGS:
-        daily, cumulative, title, filename, pop, incidences = dataMangling.get_Kreis(ts, bnn, AGS)
-        plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop, max_prevalence_100k=max_prevalence_100k,
-                        filename=filename, ifShow=ifShow, ifCleanup=ifCleanup, incidences=incidences)
-        done.append((title, filename))
+        dstr = dataMangling.get_Kreis(dm, AGS)
+        plot_timeseries(dm, dstr, ifShow=False)
+        done.append((dstr.title, dstr.filename))
         if ifPrint:
-            print(title, filename)
+            print (dstr.title, dstr.filename)
         else:
             print(".", end="")
             if len(done) % 60 == 0:
@@ -444,21 +441,17 @@ def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence
 
     return done
 
-
-def test_plot_Bundesland(ts, bnn, dates, datacolumns, Bundesland="Bayern", ifShow=True):
+def test_plot_Bundesland(dm: dataMangling.DataMangled, Bundesland = "Hessen"):
     ## Bundesland
     # Bundesland = "Dummyland"
-
-    ts_BuLa, Bundeslaender = dataMangling.join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
-    BL = Bundeslaender.drop(labels=['Deutschland', 'Dummyland'])
-    max_prevalence_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
-
-    daily, cumulative, title, filename, population = dataMangling.get_BuLa(Bundeslaender, Bundesland, datacolumns)
-    plot_timeseries(datacolumns, dates, daily, cumulative, title, filename, population, max_prevalence_100k, ifShow=ifShow, isKreis=False)
+    
+    ts_BuLa, _, _, Bundeslaender, _, _ = dataMangling.additionalColumns(dm.ts, dm.bnn)
+    fed = dataMangling.get_BuLa(Bundeslaender, Bundesland, dm.datacolumns)
+    plot_timeseries(dm, fed)
 
 
-def plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=True):
-    ts_BuLa, Bundeslaender = dataMangling.join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
+def plot_all_Bundeslaender(dm: dataMangling.DataMangled, ifPrint=True):
+    ts_BuLa, _, _, Bundeslaender, _, _ = dataMangling.additionalColumns(dm.ts, dm.bnn)
     filenames, population = [], 0
     done = []
 
@@ -467,21 +460,17 @@ def plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=True):
     # print(max_prevalence_100k)
 
     for BL in Bundeslaender.index.tolist():
-        print(BL, end=" ")
-        daily, cumulative, title, filename, pop_BL = dataMangling.get_BuLa(Bundeslaender, BL, datacolumns)
-        if BL == "Deutschland":
-            filename = filename.replace("bundesland_", "")
-        plot_timeseries(datacolumns, dates, daily, cumulative, title, population=pop_BL,
-                        filename=filename, max_prevalence_100k=max_prevalence_100k,
-                        ifShow=False, isKreis=False)
-        filenames.append(filename)
-        population += pop_BL
+        print (BL, end=" ")
+        fed = dataMangling.get_BuLa(Bundeslaender, BL, dm.datacolumns)
+        plot_timeseries(dm, fed, ifShow=False)
+        filenames.append(fed.filename)
+        population += fed.population
         if ifPrint:
-            print(title, filename)
-        done.append((title, filename))
-    print("\nTotal population covered:", population)
-    if ifPrint:
-        print("%d filenames written: %s" % (len(filenames), filenames))
+            print (fed.title, fed.filename)
+        done.append((fed.title, fed.filename))
+    print ("\nTotal population covered:", population)
+    if ifPrint:    
+        print ("%d filenames written: %s" % (len(filenames), filenames))
     return done
 
 
@@ -489,16 +478,16 @@ if __name__ == '__main__':
 
     # ts, bnn = dataFiles.data(withSynthetic=True)
     # dates = dataMangling.dates_list(ts)
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=True)
+    dm = dataMangling.dataMangled(withSynthetic=True)
 
-    examples = True
+    examples=True
     if examples:
-        test_plot_Kreis(ts, bnn, dates, datacolumns)
-        test_plot_Bundesland(ts, bnn, dates, datacolumns)
-        test_plot_Bundesland(ts, bnn, dates, datacolumns, Bundesland="Deutschland")
+        test_plot_Kreis(dm)
+        test_plot_Bundesland(dm)
+        test_plot_Bundesland(dm, Bundesland="Deutschland")
 
-    longrunner = True
-    if longrunner:
-        max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
-        plot_Kreise(ts, bnn, dates, datacolumns, ts["AGS"].tolist(), max_prevalence_100k)
-        plot_all_Bundeslaender(ts, bnn, dates, datacolumns)
+    longrunner=True
+    if longrunner:    
+        plot_Kreise(dm, dm.ts["AGS"].tolist())
+        plot_all_Bundeslaender(dm)
+        

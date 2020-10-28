@@ -14,11 +14,209 @@
           PERHAPS take apart, into several separate files?
           NOT yet: pretty, not at all easy to read, sorry. But it works.
 """
+import copy
+from dataclasses import dataclass
 
-import os, copy
 import datetime as dt
-import pandas, numpy, matplotlib
+import numpy as np
+import os
+import pandas
+from typing import List
+
 import dataFiles
+import districtDistances
+
+
+@dataclass  # use dataclass for easy initialization in `dataMangled()` (although with that the attribute order must not be changed)
+class DataMangled:
+    """structure to hold the mangled overall covid data, gathered by `dataMangled()`"""
+    ts: pandas.DataFrame = None
+    """contains all districts with rows number 0,1,2,… and columns as follows:
+        first column, 'AGS': 
+            'Amtlicher Gemeindeschlüssel'='Community Identification Number', https://en.wikipedia.org/wiki/Community_Identification_Number#Germany)
+            formatted with leading zero, if shorter than 5 characters
+        second column, 'ADMIN': 
+            name of the district, including its type in braces, e.g. 'district name (district type name)'
+        remaining columns are ascending dates since 05.03.2020, up to newest, in format 'DD.MM.YYY': 
+            number of cumulative Covid cases for the district up to that dates  
+    """
+
+    bnn: pandas.DataFrame = None
+    """contains data from BNN with rows number 0,1,2,… and columns
+        AGS: formatted *without* leading zero, if shorter than 5 characters
+        GEN: district name
+        BEZ: district type name
+        Population: of district
+        Infections: overall cumulative sum of Covid infections for district
+        "Infections per 1000 population": …
+        AGS_number: AGS again 	
+        Infections_Bundesland: infections over all districts in the Bundesland (federal state) for the district
+        Bundesland: Bundesland (federal state) for the district
+        Population_Bundesland: population of district's federal state
+        "Infections_Bundesland per 10000 population": overall cumulative sum of Covid infections for district's federal state
+        Population: population of the district
+    """
+
+    ts_sorted: pandas.DataFrame = None
+    """contains rows with AGS number as names and the columns:
+        ADMIN: [see above]
+        columns with ascending dates, like in `ts`
+        Bundesland: [see above]
+        Population: of district
+        centerday: the 'expectation day' of all Covid cases for the district
+        new_last14days: sum of district's new cases of the last 14 days
+        new_last7days: sum of district's new cases of the last 7 days
+        Reff_4_7_last: the new R_eff_4_7 value for the district (see `Reff_4_7()`)
+    """
+
+    Bundeslaender_sorted: pandas.DataFrame = None
+    """like `ts_sorted`, but with federal state names as row names and values for the total federal state instead of district"""
+
+    dates: List[dt.datetime] = None
+    """list of datetime objects for ascending dates since 05.03.2020 up to newest"""
+
+    datacolumns: pandas.Index = None
+    """axis labels of dates out of `ts`"""
+
+    haupt: pandas.DataFrame = None
+    """data of the 'haupt' CSV data source, including source URLs"""
+
+class District:
+    """structure to hold the pandemic data of a german district ('Kreis'), which may be a single city or a region of several small once"""
+    AGS: str = None
+    """AGS of length 5 with prefixed zeroes to fill the length of 5, if necessary. 
+        'AGS'=='Amtlicher Gemeindeschlüssel'=='Community Identification Number' of the district, 
+        https://en.wikipedia.org/wiki/Community_Identification_Number#Germany)
+    """
+
+    bez: str = None
+    """'Bezeichnung', type of district"""
+
+    center: np.array = None
+    """position of center day / 'expectation day' in the raw `daily` cases list"""
+
+    center_date: np.array = None
+    """center as date"""
+
+    cumulative: List[int] = None
+    """list of cumulative cases over all time, since 05.03.2020"""
+
+    daily: List[int] = None
+    """list of raw daily cases over all time, since 05.03.2020"""
+
+    filename: str = None
+    """file name where the plot/graphs get stored"""
+
+    gen: str = None
+    """name of the district"""
+
+    inf: int = None
+    """infections total of district from BNN"""
+
+    inf_BL: int = None # TODO: just link federal state, as soon as it has been converted into a container class
+    """infections total of the federal state ('Bundesland') the district lays in"""
+
+    incidence_sum7_1mio: int = None
+    """incidence sum of the last 7 days of the district's cases"""
+
+    link: str =None
+    """HTML link for directly jumping to district"""
+
+    name_BL: str = None # TODO: just link federal state, as soon as it has been converted into a container class
+    """name of the federal state ('Bundesland') the district lays in"""
+
+
+    new_last7days: int = None
+    """sum of new cases of last 7 days"""
+
+    pop: int = None
+    """population of district"""
+
+    pop_BL: int = None # TODO: just link federal state, as soon as it has been converted into a container class
+    """population of the federal state ('Bundesland') the district lays in"""
+
+    prevalence1mio: float = None
+    """prevalence for `cumulative` cases per million `pop`ulation"""
+
+    sources: str = None
+    """HTML links to the sources of the data"""
+
+    title: str = None
+    """title of district, built from dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.pop"""
+
+    total: int = None
+    """total cases over time (last entry of `cumulative`)"""
+
+    reff_4_7: float = None
+    """reff_4_7 value of district, calculated by `Reff_4_7()`"""
+
+    rolling_mean7: pandas.DataFrame = None
+    """rolling mean of the last 7 days of the district's cases"""
+
+    rolling_mean14: pandas.DataFrame = None
+    """rolling mean of the last 14 days of the district's cases"""
+
+
+class FedState:
+    """structure to hold the pandemic data of a german federal state ('Bundesland')"""
+    name: str = None
+    """name of the federal state"""
+
+    center: np.array = None
+    """position of center day / 'expectation day' in the raw `daily` cases list"""
+
+    center_date: np.array = None
+    """center as date"""
+
+    cumulative: List[int] = None
+    """list of cumulative cases over all time, since 05.03.2020"""
+
+    daily: List[int] = None
+    """list of raw daily cases over all time, since 05.03.2020"""
+
+    filename: str = None
+    """file name where the plot/graphs get stored"""
+
+    incidence_sum7_1mio: int = None
+    """incidence sum of the last 7 days of the federal state's cases"""
+
+    link: str =None
+    """HTML link for directly jumping to federal state"""
+
+    new_last7days: int = None
+    """sum of new cases of last 7 days"""
+
+    population: int = None
+    """population of federal state"""
+
+    prevalence1mio: float = None
+    """prevalence for `cumulative` cases per million `pop`ulation"""
+
+    title: str = None
+    """title of federal state, built from dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.pop"""
+
+    total: int = None
+    """total cases over time (last entry of `cumulative`)"""
+
+    reff_4_7: float = None
+    """reff_4_7 value of federal state, calculated by `Reff_4_7()`"""
+
+    rolling_mean7: pandas.DataFrame = None
+    """rolling mean of the last 7 days of the federal state's cases"""
+
+    rolling_mean14: pandas.DataFrame = None
+    """rolling mean of the last 14 days of the federal state's cases"""
+
+
+feds = dict()
+"""global dictionary to cache every `FedState`, which once has been gotten via `get_BuLa()`"""
+
+
+districts = dict()
+"""global dictionary to cache every `District`, which once has been gotten via `get_Kreis()`"""
+
+mangledData = DataMangled
+"""global object to store the mangled main data once"""
 
 
 def find_AGS(ts, name):
@@ -90,7 +288,7 @@ abbrev = {'Kreis': 'KR',
           'Stadtkreis': 'SK'}
 
 def AGS_to_name_and_type(bnn, AGS):
-    gen, bez, inf, pop = AGS_to_population(bnn, AGS)
+    gen, bez, inf, pop = AGS_to_population(bnn, AGS)    # fixme: replace with get_Kreis() and values out of there
     return "%s_%s" % (gen, abbrev[bez])
 
 
@@ -102,6 +300,20 @@ def AGS_to_Bundesland(bnn, AGS):
     inf_BL = row["Infections_Bundesland"].values[0]
     pop_BL = row["Population_Bundesland"].values[0]
     return name, inf_BL, pop_BL
+
+
+def bulaLink(name):
+    return '<a href="%s.html">%s</a>' % (name, name)
+
+
+def sources_links(haupt, AGS):
+    if AGS not in haupt.index:
+        return None
+
+    links = []
+    for i, url in enumerate(haupt.loc[AGS].urls):
+        links.append('<a href="%s" target="_blank" title="%s">%d</a>' % (url, url, i + 1))
+    return ", ".join(links)
 
 
 def temporal_center(data):
@@ -132,31 +344,67 @@ def temporal_center(data):
 
     signal[int(round(center))]=max(ddata)*0.25
     return center, signal
+    
+    
+def get_Kreis(dm: DataMangled, AGS):
 
+    ags_int = int(AGS)
+    AGS = str(AGS)
+    # use cached version it it exists already
+    if ags_int in districts:
+        dstr = districts[ags_int]
+        # print('*'*12 + " returning known district from cache:", dstr.title)
+    else:
+        dstr = District()
+        dstr.AGS = "%05i" % ags_int
 
-def get_Kreise_max_prevalence_100k(bnn):
-    max_prevalence_100k = bnn[bnn.columns[5]].str.replace(',', '.').astype(float).max() * 100
-    return max_prevalence_100k
+         # get data and names and base data
+        dstr.gen, dstr.bez, dstr.inf, dstr.pop = AGS_to_population(dm.bnn, AGS)
+        dstr.name_BL, dstr.inf_BL, dstr.pop_BL = AGS_to_Bundesland(dm.bnn, AGS)
+        dstr.daily = AGS_to_ts_daily(dm.ts, dstr.AGS)
+        dstr.cumulative = AGS_to_ts_total(dm.ts, dstr.AGS)
+        dstr.total = dstr.cumulative[-1]
 
+        # calculate prevalence
+        dstr.prevalence1mio = dstr.total / dstr.pop * 1000000 # TODO: change prevalence to more commen per 100k
 
-def get_Kreis(ts, bnn, AGS):
-    # get data and names
-    gen, bez, inf, pop = AGS_to_population(bnn, AGS)
-    name_BL, inf_BL, pop_BL = AGS_to_Bundesland(bnn, AGS)
-    title = "{} ({}, #{}, {}), Population={:,}".format(gen, bez, AGS, name_BL, pop)
-    filename = "Kreis_" + ("00000"+AGS)[-5:] + ".png"
-    daily = AGS_to_ts_daily(ts, AGS)
-    cumulative = AGS_to_ts_total(ts, AGS)
-    incidences = pandas.DataFrame(daily).rolling(window=7).sum()
-    incidences = list(map(int,incidences.fillna(0).values))
-    return daily, cumulative, title, filename, pop, incidences
+        # calculate rolling means
+        dstr.rolling_mean7 = pandas.DataFrame(dstr.daily).rolling(window=7, center=True).mean()
+        dstr.rolling_mean14 = pandas.DataFrame(dstr.daily).rolling(window=14, center=True).mean()
+
+        # calculate expectation day as center position and as date
+        dstr.center, _ = temporal_center(dstr.daily)
+        dstr.center_date = dm.datacolumns.values[int(round(dstr.center))]
+
+        # get newest Reff_4_7 out of `dm`
+        dstr.reff_4_7 = dm.ts_sorted["Reff_4_7_last"][ags_int]
+
+        # get sum of new cases of last 7 days out of `dm`
+        dstr.new_last7days = dm.ts_sorted["new_last7days"][ags_int]
+
+        # calculate last 7 days' incidence per 1 milllion population
+        dstr.incidence_sum7_1mio = dstr.new_last7days / dstr.pop * 1000000
+
+        # get HTML links of district and data sources
+        dstr.link = districtDistances.kreis_link(dm.bnn, AGS)[2]
+        dstr.sources = sources_links(dm.haupt, AGS)
+        if dstr.sources is None: dstr.sources =""
+
+        # set plotting title and file name
+        dstr.title = "%s (%s #%s, %s) Population=%d" % (dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.pop)
+        dstr.filename = "Kreis_%s.png" % dstr.AGS
+
+        # TODO: add data source's name, description, license
+
+        districts[ags_int] = dstr
+    return dstr
 
 
 def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
 
     # careful, there might be more fields with nan (currently just the 3 copyright rows)
     ts_int = copy.deepcopy(ts.dropna())
-
+    
     ts_int["AGS"]=pandas.to_numeric(ts_int["AGS"]) # must transform string to int, for merge:
     ts_BuLa = pandas.merge(ts_int, bnn[["AGS", "Bundesland", "Population"]], how="left", on=["AGS"])
 
@@ -168,21 +416,55 @@ def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
     return ts_BuLa, Bundeslaender
 
 
-def get_BuLa(Bundeslaender, name, datacolumns):
-    # get data and names
-    filename = "bundesland_" + name + ".png"
-    population = Bundeslaender.loc[name, "Population"]
-    # row = Bundeslaender.loc[Bundeslaender['Bundesland'] == name]
+def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
 
-    row = Bundeslaender[datacolumns].loc[[name]]
+    if name in feds:
+        fed = feds[name]
+    else:
+        fed = FedState()
+        fed.name = name
+        # get data and names
+        fed.filename = "bundesland_" + name + ".png"
+        if name=="Deutschland":
+            fed.filename = fed.filename.replace("bundesland_", "")
+        fed.population = Bundeslaender.loc[name, "Population"]
 
-    cumulative=row.values[0].tolist()
-    diff = row.diff(axis=1)
-    daily = diff.values[0].tolist()
+        row = Bundeslaender[datacolumns].loc[[name]]
 
-    title = name + " Population={:,}".format( population)
+        fed.cumulative=row.values[0].tolist()
+        diff = row.diff(axis=1)
+        fed.daily = diff.values[0].tolist()
 
-    return daily, cumulative, title, filename, population
+        fed.title = name + " Population=%i" % fed.population
+
+        fed.total = fed.cumulative[-1]
+
+        # calculate prevalence
+        fed.prevalence1mio = fed.total / fed.population * 1000000  # TODO: change prevalence to more commen per 100k
+
+        # calculate rolling means
+        fed.rolling_mean7 = pandas.DataFrame(fed.daily).rolling(window=7, center=True).mean()
+        fed.rolling_mean14 = pandas.DataFrame(fed.daily).rolling(window=14, center=True).mean()
+
+        # calculate expectation day as center position and as date
+        fed.center, _ = temporal_center(fed.daily)
+        fed.center_date = datacolumns.values[int(round(fed.center))]
+
+        # get newest Reff_4_7 out of `dm`
+        fed.reff_4_7 = Bundeslaender["Reff_4_7_last"][name]
+
+        # get sum of new cases of last 7 days out of `dm`
+        fed.new_last7days = Bundeslaender["new_last7days"][name]
+
+        # calculate last 7 days' incidence per 1 milllion population
+        fed.incidence_sum7_1mio = fed.new_last7days / fed.population * 1000000
+
+        # get HTML link of federal state
+        fed.link = bulaLink(name)
+
+        # TODO: add data source's name, description, license, link
+
+    return fed
 
 
 
@@ -195,16 +477,16 @@ def add_centerday_column(ts, ts_BuLa):
     return ts_sorted
 
 def add_centerday_column_Bundeslaender(Bundeslaender, datacolumns):
-    Bundeslaender["centerday"] = [temporal_center(get_BuLa(Bundeslaender, name, datacolumns)[0])[0]
+    Bundeslaender["centerday"] = [get_BuLa(Bundeslaender, name, datacolumns).center
                                   for name in Bundeslaender.index.tolist() ]
     Bundeslaender.sort_values("centerday", ascending=False, inplace=True)
     return Bundeslaender
 
 
-def maxdata(ts_sorted):
-    maxvalue = max(ts_sorted[ts.columns[2:]].max())
-    digits=int(1 + numpy.log10(maxvalue))
-    return maxvalue, digits
+# def maxdata(ts_sorted):
+#     maxvalue = max(ts_sorted[ts.columns[2:]].max())
+#     digits=int(1 + numpy.log10(maxvalue))
+#     return maxvalue, digits
 
 
 
@@ -225,7 +507,7 @@ def AGS_to_daily(ts_rich, datacolumns, AGS):
     now also accepts tables with additional columns
     because positive selection by datacolumns (not negative by droppping columns)
     """
-    cum = pandas.Series ( AGS_to_cumulative(ts_rich, datacolumns, AGS) )
+    cum = pandas.Series(AGS_to_cumulative(ts_rich, datacolumns, AGS))
     diff = cum.diff()
     return diff.values.tolist()
 
@@ -295,11 +577,11 @@ def add_weekly_columns_Bundeslaender(Bundeslaender, datacolumns):
 
 def Reff_4_4(daily,i):
     if i<7:
-        return numpy.nan
+        return np.nan
     d=daily
     denominator = d[i-4]+d[i-5]+d[i-6]+d[i-7]
-    result = (d[i]+d[i-1]+d[i-2]+d[i-3]) / denominator if denominator else numpy.nan
-    return result
+    result = (d[i]+d[i-1]+d[i-2]+d[i-3]) / denominator if denominator else np.nan
+    return result 
 
 
 def Reff_4_7(dailyNewCases, i=None):
@@ -317,15 +599,15 @@ def Reff_4_7(dailyNewCases, i=None):
     if not i:
         i=len(dailyNewCases)-1
     if i<10:
-        return numpy.nan
+        return np.nan
     #                               # clip away negative values:
     d=pandas.DataFrame(dailyNewCases).clip(lower=0)[0].values.tolist()
     # print ("daily only positives:", d)
 
     avg_gen_size_now  =   ( d[i]  +d[i-1]+d[i-2]+d[i-3]+d[i-4]+d[i-5]+d[i-6] ) / 7.0
     avg_gen_size_before = ( d[i-4]+d[i-5]+d[i-6]+d[i-7]+d[i-8]+d[i-9]+d[i-10]) / 7.0
-    Reff = avg_gen_size_now / avg_gen_size_before if avg_gen_size_before else numpy.nan
-    return Reff
+    Reff = avg_gen_size_now / avg_gen_size_before if avg_gen_size_before else np.nan
+    return Reff 
 
 
 def Reff_7_4(cumulative, i=None):
@@ -336,20 +618,20 @@ def Reff_7_4(cumulative, i=None):
     if not i:
         i=len(cumulative)-1
     if i<14:
-        return numpy.nan
+        return np.nan
     c=cumulative
 
     avg_gen_size_now  =   ( c[i] -  c[i-7] )
     avg_gen_size_before = ( c[i-7]-c[i-14] )
-    Reff = (avg_gen_size_now / avg_gen_size_before)**(4/7) if avg_gen_size_before else numpy.nan
-    return Reff
+    Reff = (avg_gen_size_now / avg_gen_size_before)**(4/7) if avg_gen_size_before else np.nan
+    return Reff 
 
 
 
 
 def Reff_comparison(daily, cumulative, title, filename=None):
     daily_SMA=pandas.DataFrame(daily).rolling(window=7, center=True).mean()[0].values.tolist()
-    daily_SMA
+    # daily_SMA
     # list(zip(cumulative,daily, daily_SMA))
 
     R1=[Reff_4_4(daily, i) for i, _ in enumerate(daily)]
@@ -444,48 +726,51 @@ def test_some_mangling():
     print ("expectation value at day %.2f" % center)
     # exit()
 
+    # ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=withSyntheticData)
+    dm = dataMangled()
+
     print ("\nKreis")
-    daily, cumulative, title, filename, pop, incidences = get_Kreis(ts, bnn, AGS)
-    print (daily, cumulative)
-    print (title, filename, pop)
+    dstr = get_Kreis(dm, AGS)
+    print (dstr.daily, dstr.cumulative)
+    print (dstr.title, dstr.filename, dstr.pop)
 
     print ("\nBundesländer")
     ts_BuLa, Bundeslaender = join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
 
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangled(withSynthetic=True)
 
-    daily, cumulative, title, filename, population = get_BuLa(Bundeslaender, "Hessen", datacolumns)
-    print (daily, cumulative)
-    print (title, filename, population)
-
+    fed = get_BuLa(Bundeslaender, "Hessen", dm.datacolumns)
+    print (fed.daily, fed.cumulative)
+    print (fed.title, fed.filename, fed.population)
+    
     # print ( maxdata(ts_sorted) )
     # total_max_cum, digits = maxdata(ts_sorted)
 
     AGS = 0
     AGS=1001
     AGS=5370
-    print (AGS_to_cumulative(ts_rich=ts_sorted, datacolumns=datacolumns, AGS=AGS))
-    print (AGS_to_daily(ts_rich=ts_sorted, datacolumns=datacolumns, AGS=AGS))
+    print (AGS_to_cumulative(ts_rich=dm.ts_sorted, datacolumns=dm.datacolumns, AGS=AGS))
+    print (AGS_to_daily(ts_rich=dm.ts_sorted, datacolumns=dm.datacolumns, AGS=AGS))
 
-    cumulative=AGS_to_cumulative(ts_rich=ts_sorted, datacolumns=datacolumns, AGS=AGS)
+    cumulative=AGS_to_cumulative(ts_rich=dm.ts_sorted, datacolumns=dm.datacolumns, AGS=AGS)
     print (cumulative_smoothed_last_week_incidence(cumulative))
     print (cumulative_today_minus_last_week_smoothed(cumulative))
     print (multiDayNewCases(cumulative))
     print (multiDayNewCases(cumulative, 14))
-    print (multiDayNewCases( AGS_to_cumulative(ts_sorted, datacolumns, AGS) , 14) )
-    print (ts_sorted.loc[AGS][["new_last14days", "new_last7days"]]); # exit()
-    print (ts_sorted["new_last14days"][AGS]);
-
+    print (multiDayNewCases( AGS_to_cumulative(dm.ts_sorted, dm.datacolumns, AGS) , 14) )
+    print (dm.ts_sorted.loc[AGS][["new_last14days", "new_last7days"]])
+    # exit()
+    print (dm.ts_sorted["new_last14days"][AGS])
+    
     # print (add_weekly_columns_Bundeslaender(Bundeslaender_sorted, datacolumns))
-    print (add_weekly_columns_Bundeslaender(Bundeslaender_sorted, datacolumns)[["new_last14days", "new_last7days"]])
-
+    print (add_weekly_columns_Bundeslaender(dm.Bundeslaender_sorted, dm.datacolumns)[["new_last14days", "new_last7days"]])
+    
     # test_Reff_Kreis(ts_sorted, datacolumns)
     # test_Reff_BL(Bundeslaender_sorted, datacolumns, BL="Hamburg")
-
-    for BL in Bundeslaender_sorted.index:
-        test_Reff_BL(Bundeslaender_sorted, datacolumns, BL=BL, filename=BL+".png")
-
-
+    
+    for BL in dm.Bundeslaender_sorted.index:
+        test_Reff_BL(dm.Bundeslaender_sorted, dm.datacolumns, BL=BL, filename=BL+".png")
+    
+    
 def additionalColumns(ts,bnn):
     """
     this can operate on data in RAM
@@ -494,23 +779,46 @@ def additionalColumns(ts,bnn):
     datacolumns = ts.columns[2:]
     print ("\nNewest column = '%s'" % datacolumns[-1])
     ts_BuLa, Bundeslaender = join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
+
     ts_sorted = add_centerday_column(ts, ts_BuLa)
     ts_sorted = add_weekly_columns(ts_sorted, datacolumns)
     ts_sorted = add_column_Kreise(ts_sorted, datacolumns, inputseries=AGS_to_daily, operatorname="Reff_4_7_last", operator=Reff_4_7)
-    Bundeslaender_sorted = add_centerday_column_Bundeslaender(Bundeslaender, datacolumns)
-    Bundeslaender_sorted = add_weekly_columns_Bundeslaender(Bundeslaender_sorted, datacolumns)
+
+    Bundeslaender_sorted = add_weekly_columns_Bundeslaender(Bundeslaender, datacolumns)
     Bundeslaender_sorted = add_column_Bundeslaender(Bundeslaender_sorted , datacolumns, inputseries=BL_to_daily, operatorname="Reff_4_7_last", operator=Reff_4_7)
+
+    ts_sorted["new_last14days"] = ts_sorted["new_last14days"].astype(int)
+    ts_sorted["new_last7days"] = ts_sorted["new_last7days"].astype(int)
+    Bundeslaender_sorted["new_last14days"] = Bundeslaender_sorted["new_last14days"].astype(int)
+    Bundeslaender_sorted["new_last7days"] = Bundeslaender_sorted["new_last7days"].astype(int)
+
+    for datecol in datacolumns:
+        ts_sorted[datecol]=ts_sorted[datecol].astype(int)
+        Bundeslaender_sorted[datecol]=Bundeslaender_sorted[datecol].astype(int)
+
+    Bundeslaender_sorted = add_centerday_column_Bundeslaender(Bundeslaender_sorted, datacolumns)
+
     return  ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns
 
-def dataMangled(withSynthetic=True, ifPrint=True):
+def dataMangled(withSynthetic=True, ifPrint=True, haupt=None, haupt_timestamp=""):
     """
     this loads from disk first
+
+    Notes:
+        * if `haupt` is None, `dataFiles.load_master_sheet_haupt(timestamp=haupt_timestamp)` is used for it
+        * haupt_timestamp=="" means newest
+
     """
+    global mangledData
+    if mangledData.ts is not None:
+        return mangledData
+
     ts, bnn = dataFiles.data(withSynthetic=withSynthetic, ifPrint=ifPrint)
+    if haupt is None:
+        haupt = dataFiles.load_master_sheet_haupt(timestamp=haupt_timestamp)
+    mangledData = DataMangled(*additionalColumns(ts,bnn), haupt)
 
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = additionalColumns(ts,bnn)
-
-    return ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns
+    return mangledData
 
 
 

@@ -14,7 +14,7 @@
           NOT yet: ready, clearly structured, pretty, easy to read! But it works.
 """
 
-import os, datetime
+import os
 
 import pandas
 import numpy
@@ -22,11 +22,11 @@ import matplotlib
 
 
 import dataFiles, dataMangling, districtDistances
+from dataMangling import bulaLink
 
 
-
-def toHTMLRow(ts_sorted, row_index, datacolumns, cmap, labels, rolling_window_size=7):
-    row = ts_sorted[datacolumns].loc[row_index].astype('int')
+def toHTMLRow(frame, row_index, datacolumns, cmap, labels, rolling_window_size=7):
+    row = frame[datacolumns].loc[row_index].astype('int')
     # return row
 
     window=rolling_window_size
@@ -49,6 +49,9 @@ def toHTMLRow(ts_sorted, row_index, datacolumns, cmap, labels, rolling_window_si
         rgb = matplotlib.colors.to_hex(cmap( 0.30+(d/diffmax)*0.50 ))
         
         line+='<td bgcolor="%s"><span>%d</span></td> ' % (rgb, c)
+        
+    for label in labels:
+        line+="<td>%s</td>" % label
         
     return line + "</tr>"
     
@@ -178,14 +181,11 @@ def prevalence(datatable, row_index, datacolumns, population):
     prev1mio = cumulative[-1] / population * 1000000
     return prev1mio
 
-def bulaLink(name):
-    return '<a href="%s.html">%s</a>' % (name, name)
-
 
 ATTRIBUTION = """<span style="color:#aaaaaa; font-size:x-small;">Source data from "Risklayer GmbH (www.risklayer.com) and Center for Disaster Management and Risk Reduction Technology (CEDIM) at Karlsruhe Institute of Technology (KIT) and the Risklayer-CEDIM SARS-CoV-2 Crowdsourcing Contributors". Data sources can be found under https://docs.google.com/spreadsheets/d/1wg-s4_Lz2Stil6spQEYFdZaBEp8nWW26gVyfHqvcl8s/edit?usp=sharing Authors: James Daniell| Johannes Brand| Andreas Schaefer and the Risklayer-CEDIM SARS-CoV-2 Crowdsourcing Contributors through Risklayer GmbH and Center for Disaster Management and Risk Reduction Technology (CEDIM) at the Karlsruhe Institute of Technology (KIT).</span><p/>""" 
 
 
-def Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, filename="kreise_Germany.html", rolling_window_size=3, header=PAGE % "Deutschland Kreise", footer=PAGE_END, divEnveloped=True):
+def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.html", rolling_window_size=3, header=PAGE % "Deutschland Kreise", footer=PAGE_END, divEnveloped=True):
 
     # total_max_cum, digits = maxdata(ts_sorted)
     
@@ -198,9 +198,10 @@ def Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, fi
     page += '<caption id="caption_kreise" style="text-align:right;">%s</caption>\n' % caption
     page +="<tr>"
 
-    dc_head = datacolumns.tolist()
+    dc_head = dm.datacolumns.tolist()
     dc_head.reverse()
-    
+
+    colcount=len(dm.datacolumns)
     # print (datacolumns, colcount); exit()
     cols = [("total cases", True),
             ("7days new cases", True),
@@ -228,28 +229,26 @@ def Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, fi
     page +="</tr>"
     
     for AGS in district_AGSs:
-        gen, bez, inf, pop = dataMangling.AGS_to_population(bnn, AGS)
-        name_BL, inf_BL, pop_BL = dataMangling.AGS_to_Bundesland(bnn, AGS)
+        dstr = dataMangling.get_Kreis(dm, AGS)
         # print (AGS)
         # nearby_links = districtDistances.kreis_nearby_links(bnn, distances, AGS, km) if AGS else ""
         labels=[]
         
         # Add the last data column once more, so that table is sortable by that column:
-        totalCases = int((ts_sorted[datacolumns[-1]][AGS]))
+        totalCases = dstr.total
         labels += ['%d' % totalCases]
         
-        labels += ['%d' % (ts_sorted["new_last7days"][AGS])]
-        labels += [districtDistances.kreis_link(bnn, AGS)[2]]
-        labels += ["%d" % prevalence(datatable=ts_sorted, row_index=AGS, datacolumns=datacolumns, population=pop)]
-        labels += ['%d' % (1000000*ts_sorted["new_last7days"][AGS] / pop)]
-        # labels += ['%d' % (1000000*ts_sorted["new_last7days"][AGS] / pop)]
-        labels += ['{:,}'.format(pop)]
-        labels += ["%.1f"% (ts_sorted["centerday"][AGS])]
-        labels += ["%.2f"% (ts_sorted["Reff_4_7_last"][AGS])]
-        labels += [bulaLink(name_BL)]
-        labels += [flag_image(name_BL, pop_BL)]
+        labels += ['%d' % dstr.new_last7days]
+        labels += [dstr.link]
+        labels += ["%d" % dstr.prevalence1mio]
+        labels += ['%d' % dstr.incidence_sum7_1mio]
+        labels += ['{:,}'.format(dstr.pop)]
+        labels += ["%.1f" % dstr.center]
+        labels += ["%.2f" % dstr.reff_4_7]
+        labels += [bulaLink(dstr.name_BL)]
+        labels += [flag_image(dstr.name_BL, dstr.pop_BL)]
         # labels += [nearby_links]
-        page += toHTMLRow(ts_sorted, AGS, datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
+        page += toHTMLRow(dm.ts_sorted, AGS, dm.datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
         
     page += "</table>"
     if divEnveloped:
@@ -265,10 +264,12 @@ def Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, fi
     return fn, page
     
 
-def BuLas_to_HTML_table(Bundeslaender, datacolumns, BL_names, cmap, table_filename="bundeslaender_Germany.html", rolling_window_size=3, header = PAGE % "Bundeslaender", footer=PAGE_END, divEnveloped=True):
+def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bundeslaender_Germany.html", rolling_window_size=3, header = PAGE % "Bundeslaender", footer=PAGE_END, divEnveloped=True):
 
     # total_max_cum, digits = maxdata(ts_sorted)
-    
+    Bundeslaender= dm.Bundeslaender_sorted
+    BL_names = Bundeslaender.index.tolist()
+
     tid="table_bundeslaender"
     page = header
     if divEnveloped:
@@ -294,16 +295,16 @@ def BuLas_to_HTML_table(Bundeslaender, datacolumns, BL_names, cmap, table_filena
 
     for name_BL in BL_names:
         labels=[]
-        daily, cumulative, title, filename, pop_BL = dataMangling.get_BuLa(Bundeslaender, name_BL, datacolumns)
-        labels += ['%d' % (Bundeslaender["new_last7days"][name_BL])]
-        labels += [bulaLink(name_BL)]
+        fed = dataMangling.get_BuLa(Bundeslaender, name_BL, dm.datacolumns)
+        labels += ['%d' % fed.new_last7days]
+        labels += [fed.link]
         labels += [flag_image(name_BL)]
-        labels += ["%d" % prevalence(datatable=Bundeslaender, row_index=name_BL, datacolumns=datacolumns, population=pop_BL)]
-        labels += ['%d' % (1000000*Bundeslaender["new_last7days"][name_BL] / pop_BL)]
-        labels += ['{:,}'.format(pop_BL)]
-        labels += ["%.2f"% (Bundeslaender["centerday"][name_BL])]
-        labels += ["%.2f"% (Bundeslaender["Reff_4_7_last"][name_BL])]
-        page += toHTMLRow(Bundeslaender, name_BL, datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
+        labels += ["%d" % fed.prevalence1mio]
+        labels += ['%d' % fed.incidence_sum7_1mio]
+        labels += ['{:,}'.format(fed.population)]
+        labels += ["%.2f" % fed.center]
+        labels += ["%.2f" % fed.reff_4_7]
+        page += toHTMLRow(Bundeslaender, name_BL, dm.datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
         
     page += "</table>"
     if divEnveloped:
@@ -344,22 +345,21 @@ def colormap():
 
 if __name__ == '__main__':
 
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled()
-    
-       
+    dm = dataMangling.dataMangled()
+
     AGS = 1001
     AGS = 5370
-    print ( ts_sorted["centerday"][AGS] )
+    print ( dm.ts_sorted["centerday"][AGS] )
 
     cmap = colormap()  
     
-    print ( toHTMLRow(ts_sorted, AGS, datacolumns, cmap, labels=["%s" % AGS]) ) 
+    print ( toHTMLRow(dm.ts_sorted, AGS, dm.datacolumns, cmap, labels=["%s" % AGS]) )
 
-    district_AGSs = [5711, 1002, 5370, 9377]
-    # district_AGSs = ts_sorted.index.tolist()
+    district_AGSs = [1001, 1002, 5370, 9377]
+    district_AGSs = dm.ts_sorted.index.tolist()
     
     distances = districtDistances.load_distances()
-    print (Districts_to_HTML_table(ts_sorted, datacolumns, bnn, district_AGSs, cmap, divEnveloped=False)[0])
+    print (Districts_to_HTML_table(dm, district_AGSs, cmap, divEnveloped=False)[0])
     
     # Bundeslaender.loc['Deutschland'] = Bundeslaender.sum().values.tolist()
     

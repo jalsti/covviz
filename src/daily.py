@@ -20,15 +20,15 @@ from dataFiles import PICS_PATH, PAGES_PATH, WWW_REPO_PICS, WWW_REPO_PAGES, WWW_
 # TODO: move the following (up to showSomeExtremeValues()) into some dataRanking perhaps?
 # also make HTML tables from it.
 
-def columns_into_integers(ts_sorted, datacolumns):
-    """
-    todo: migrate this to dataMangling, and adapt to / test with Bundeslaender
-    also do some many tests, to see that all is still good then. 
-    """
-    ts_sorted["new_last14days"]=ts_sorted["new_last14days"].astype(int)
-    ts_sorted["new_last7days"]=ts_sorted["new_last7days"].astype(int)
-    for datecol in datacolumns:
-        ts_sorted[datecol]=ts_sorted[datecol].astype(int)
+# def columns_into_integers(ts_sorted, datacolumns):
+#     """
+#     todo[done]: migrate this to dataMangling, and adapt to / test with Bundeslaender
+#     also do some many tests, to see that all is still good then.
+#     """
+#     ts_sorted["new_last14days"]=ts_sorted["new_last14days"].astype(int)
+#     ts_sorted["new_last7days"]=ts_sorted["new_last7days"].astype(int)
+#     for datecol in datacolumns:
+#         ts_sorted[datecol]=ts_sorted[datecol].astype(int)
         
     
 def add_incidence_prevalence(ts_sorted, datacolumns):
@@ -65,7 +65,6 @@ def title(text):
     return "\n%s\n* %s *\n%s" %(sep, text, sep)
 
 def showSomeExtremeValues(ts_sorted, datacolumns, n=15):
-    columns_into_integers(ts_sorted, datacolumns)
     add_incidence_prevalence(ts_sorted, datacolumns)
     add_daily(ts_sorted, datacolumns)
     ts_sorted = newColOrder(ts_sorted, datacolumns)
@@ -80,7 +79,6 @@ def showSomeExtremeValues(ts_sorted, datacolumns, n=15):
     
 def showBundeslaenderRanked(Bundeslaender_sorted, datacolumns, rankedBy="incidence_1mio_last7days"):
     print(title("Bundesländer ranked by '%s':" % rankedBy))
-    columns_into_integers(Bundeslaender_sorted, datacolumns)
     add_incidence_prevalence(Bundeslaender_sorted, datacolumns)
     add_daily(Bundeslaender_sorted, datacolumns)
     #Bundeslaender_sorted["Bundesland"]=Bundeslaender_sorted.index
@@ -91,11 +89,11 @@ def showBundeslaenderRanked(Bundeslaender_sorted, datacolumns, rankedBy="inciden
     
 def loadAndShowSomeExtremeValues():
     print ("\n show some insights\n")
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=True) 
+    dm = dataMangling.dataMangled()
     # print (ts_sorted.columns)
     
-    showSomeExtremeValues(ts_sorted, datacolumns)
-    showBundeslaenderRanked(Bundeslaender_sorted, datacolumns)
+    showSomeExtremeValues(dm.ts_sorted, dm.datacolumns)
+    showBundeslaenderRanked(dm.Bundeslaender_sorted, dm.datacolumns)
 
 ## download and process:
 
@@ -103,7 +101,7 @@ def download_all(showExtremes=True):
     new_CSV, _ = dataFiles.downloadData()
     print ("\ndownloaded timeseries CSV was new: %s \n" % new_CSV)
 
-    new_master_state = dataFiles.get_master_sheet_haupt(sheetID=dataFiles.RISKLAYER_MASTER_SHEET);
+    new_master_state = dataFiles.get_master_sheet_haupt(sheetID=dataFiles.RISKLAYER_MASTER_SHEET)
     print ("\ndownloaded mastersheet has new state: %s \n" % new_master_state)
     
     if showExtremes:
@@ -114,18 +112,18 @@ def download_all(showExtremes=True):
 
 def generate_all_pages(withSyntheticData=True):
     
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=withSyntheticData)
+    # haupt = dataFiles.load_master_sheet_haupt(timestamp="") # timestamp="" means newest
+    dm = dataMangling.dataMangled(withSynthetic=withSyntheticData, haupt=None)
     print()
 
     distances = districtDistances.load_distances()
     cmap = dataTable.colormap()
-    
-    haupt = dataFiles.load_master_sheet_haupt(timestamp="") # timestamp="" means newest
+
     print()
-    Bundeslaender_filenames = dataPages.Bundeslaender_alle(Bundeslaender_sorted, ts, ts_sorted, datacolumns, bnn, distances, cmap, km=50, haupt=haupt);
+    Bundeslaender_filenames = dataPages.Bundeslaender_alle(dm, distances, cmap, km=50)
     print (Bundeslaender_filenames)
     
-    fn = dataPages.Deutschland(Bundeslaender_sorted, datacolumns, cmap, ts_sorted, bnn )
+    fn = dataPages.Deutschland(dm, cmap)
     print ("\n" + fn)
     
     return True
@@ -133,18 +131,16 @@ def generate_all_pages(withSyntheticData=True):
 
 def generate_all_plots(withSyntheticData=True):
 
-    ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns = dataMangling.dataMangled(withSynthetic=withSyntheticData)
+    dm = dataMangling.dataMangled(withSynthetic=withSyntheticData)
     print()
-
+    
     print ("Plotting takes a bit of time. Patience please. Thanks.")
-    done = dataPlotting.plot_all_Bundeslaender(ts, bnn, dates, datacolumns, ifPrint=False)
+    done = dataPlotting.plot_all_Bundeslaender(dm, ifPrint=False)
     print ("plot_all_Bundeslaender: %d items" % len(done))
-
-    max_prevalence_100k = dataMangling.get_Kreise_max_prevalence_100k(bnn)
-
-    listOfAGSs = ts["AGS"].tolist()
+    
+    listOfAGSs = dm.ts["AGS"].tolist()
     print ("Plotting %d images, for each Kreis. Patience please: " % len(listOfAGSs))
-    done = dataPlotting.plot_Kreise_parallel(ts, bnn, dates, datacolumns, listOfAGSs, max_prevalence_100k, ifPrint=True)
+    done = dataPlotting.plot_Kreise(dm, listOfAGSs, ifPrint=False)
     print ("plot_Kreise done: %d items" % len(done))
     print()
 
