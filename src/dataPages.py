@@ -112,16 +112,17 @@ def wikipedia_link(wp, AGS, base_url=dataFiles.WP_URL):
 
 def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap, km):
     page = dataTable.PAGE % fed.name
-    district_AGSs = dm.ts_sorted[dm.ts_sorted.Bundesland==fed.name].index.tolist()
+
+    district_AGSs = dm.ts_sorted[dm.ts_sorted.Bundesland==fed.name].drop(["Dummykreis"], errors='ignore').index.tolist()
     
     page +='<a name="top">'
     page +='Up to <a href="about.html">about.html</a> or to overview of <a href="Deutschland.html">Germany</a>\n'
     page +='Or down to <a href="#Kreise">Kreise (districts)</a> ' + SPONSORS_IMG_ABOUT_PAGE
-    flagimg = dataTable.flag_image(fed.name, fed.pop, height=20)
+    flagimg = dataTable.flag_image(fed.name, fed.population, height=20)
     page +="<hr><h1>%s %s, and its %d districts (%s)</h1>\n" % (flagimg, fed.name, len(district_AGSs), dm.datacolumns[-1])
     page +='<img src="%s"/><p/>' % ("../pics/" + fed.filename)
-    page += "population: {:,}".format(fed.pop)
-    page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/> " % fed.prevalence1mio # FIXME: text say 100k, not 1mio
+    page += "population: {:,}".format(fed.population)
+    page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/> ".format(fed.prevalence_100k)
     page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
             "relative to all other {plural}; e.g. the less colourful the gradient is, " \
             "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \
@@ -134,20 +135,14 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
     page +='Click on name of Kreis to see detailed data. If not all visible, '
     page +='<a href="javascript:expand_table_div(\'tablediv_kreise\');">expand table area</a>, or use scrollbar.<p/>\n'
     
-    AGS_str_list = ts_sorted[ts_sorted.Bundesland==fed.name].index.astype('str').to_list()
-    if "0" in AGS_str_list:
-        # remove Dummyland, if in list
-        AGS_str_list.remove("0")
-    # cleaned_BL_names = BL_names[:].remove('Dummyland')
-    # locs=",".join(BL_names[:] + AGS_str_list[:])
+    AGS_str_list = dm.ts_sorted[dm.ts_sorted.Bundesland==fed.name].index.astype('str').to_list()
     locs=",".join(AGS_str_list[:])
     page += CHOICES_ITEMS_JS_STUB.format(choice_id="all_district_plots", locs=locs, cols=4,
                                          title="covviz plots of all %d %s\\'s Kreise \(districts\), sorted by expectation day" % (len(AGS_str_list), fed.name),
                                          linktext="Open overview of (only) the plots of all %d %s\\'s Kreise \(districts\) in a new window." % (len(AGS_str_list), fed.name))
 
 
-    districtsHTML = dataTable.Districts_to_HTML_table(ts_sorted, datacolumns, bnn,
-                                                      district_AGSs, cmap, filename=None,
+    districtsHTML = dataTable.Districts_to_HTML_table(dm, district_AGSs, cmap, filename=None,
                                                       rolling_window_size=5, header="\n", footer="\n")
     
     page+=districtsHTML[1]
@@ -170,15 +165,15 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
             locs += f"{fed.name},"
         locs += f"{AGS},{nearby_AGS}"
         cols = 3 # if nearby_AGS.count(',') < 12 else 4
-        page += CHOICES_ITEMS_JS_STUB.format(choice_id=f"{anchor}_choice", locs=locs, cols=cols, title=f"covviz plots of {gen} and neighbours within {km}km",
+        page += CHOICES_ITEMS_JS_STUB.format(choice_id=f"{anchor}_choice", locs=locs, cols=cols, title=f"covviz plots of {dstr.gen} and neighbours within {km}km",
                                              linktext="Open all plots of these neighbours in a new window.")
 
         filename_kreis_PNG = "Kreis_" + ("00000"+str(AGS))[-5:] + ".png"
 
         page +='<img src="%s"/><p/>' % ("../pics/" + dstr.filename)
         
-        page += ("%s %s" % (dstr.bez, dstr.gen)) + " population: {:,}".format(dstr.pop)
-        page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/> " % dstr.prevalence
+        page += ("%s %s" % (dstr.bez, dstr.gen)) + " population: {:,}".format(dstr.population)
+        page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/> ".format(dstr.prevalence_100k)
         page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
                 "relative to all other {plural}; e.g. the less colourful the gradient is, " \
                 "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \
@@ -193,7 +188,7 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
             kreis = kreissitz = dstr.gen # we have that wikipedia info about kreissitz only for 294 out of 401, for remainder fall back to kreis name
         page += ", " + search_URLs(kreis, kreissitz)
         page +='<br/>total cases: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % dstr.cumulative
-        page +='<br/>incidence sums: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % (dstr.incidence_sum7_1mio)
+        page +='<br/>incidence sums: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % dstr.incidence_sums
         page += "<p/>"
         page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
@@ -212,7 +207,6 @@ def Bundeslaender_alle(dm: dataMangling.DataMangled, distances, cmap, km):
     rootpath = os.path.abspath(dataFiles.REPO_PATH)
     Bundeslaender = dm.Bundeslaender_sorted
     for BL_name in Bundeslaender.index.tolist():
-    # for BL_name in ["Dummyland"]:
         if BL_name == "Deutschland":
             continue
         print (BL_name, end=" ")
@@ -322,9 +316,9 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
     DE=dm.Bundeslaender_sorted.drop(["Deutschland", "Dummyland"], errors='ignore').sum() # errors='ignore' in case Dummyland is not part of the dataset anyways
     cumulative = DE[dm.datacolumns].astype(int).tolist()
     
-    prevalence = cumulative[-1] / DE["Population"] * 1000000
+    prevalence = cumulative[-1] / DE["Population"] * 100000.0
     page += "population: {:,}".format(DE["Population"])
-    page += " <big>&rarr;</big>&nbsp;current prevalence: %d known infected per 1 million population (over all time).<br/>\n" % prevalence
+    page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/>\n".format(prevalence)
     
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
 
@@ -347,7 +341,7 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
 
 
     page += '<div class="bloverview">'
-    page += bloverview(Bundeslaender_sorted)
+    page += bloverview(dm.Bundeslaender_sorted)
     page += '</div>'
     
     page +="<p style='clear:both'>Click on the image of a Bundesland to enter its page, with all its districts.</p>"
@@ -360,11 +354,6 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
     page +='<a href="javascript:expand_table_div(\'tablediv_kreise\');">expand table area</a>, or use scrollbar.<p/>\n'
 
     AGS_str_list = dm.ts_sorted.index.astype('str').to_list()
-    if "0" in AGS_str_list:
-        # remove Dummyland, if in list
-        AGS_str_list.remove("0")
-    # cleaned_BL_names = BL_names[:].remove('Dummyland')
-    # locs=",".join(BL_names[:] + AGS_str_list[:])
     locs=",".join(AGS_str_list[:])
     page += CHOICES_ITEMS_JS_STUB.format(choice_id="all_district_plots", locs=locs, cols=4,
                                          title="covviz plots of all 401 german Kreise \(districts\), sorted by expectation day",

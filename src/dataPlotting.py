@@ -46,7 +46,7 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
     """
 
     # large_multiple_of = multiple_of * 50
-
+    # TODO: we should not end with 10 ticks for 5 days (e.g. 12051, 12070, with left y max 30, right y max 60 )
     # change all axes y ticks so that they are the nearest multiples of `multiple_of`
     for ax in [base_ax] + adjust_axs:
         yticks = ax.get_yticks()
@@ -114,11 +114,12 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
 
 
 
-def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.District, dataMangling.FedState], ifShow=True, ifCleanup=True, limitIncidencePerWeekPerMillion=500):
+def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.District, dataMangling.FedState], ifShow=True, ifCleanup=True):
+    """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
     dates = dm.dates
     daily = plot_item.daily
-    """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
+    isDistrict = type(plot_item) == dataMangling.District
 
     # enlarger for y-limits of axis' tick ranges to not plot too close to top
     PLOT_YLIM_ENLARGER_DAILYS = 1.2  # if this is too low (e.g. 1.2), chances are good that some daily graphs go beyond the top, due to below manual changes to automatic ticks
@@ -154,7 +155,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     ax_for_marker = ax
 
     # if isKreis, add axis for daily sums (with seperate y-axis), set z-order, use for marker
-    if type(plot_item) == dataMangling.District:
+    if isDistrict:
         ax_sum: plt.Axes = ax.twinx()
         ax_sum.name = "sum incidences"
         ax_sum.set_zorder(4)
@@ -176,19 +177,18 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     #
     # plot background gradient, indicating relative prevalence
-    if plot_item.max_prevalence_100k is not None and not "Deutschland" in plot_item.filename:
+    if not "Deutschland" in plot_item.filename:
         # backgroud gradient indicating local max prevalence values compared with global
-        glob_max = plot_item.max_prevalence_100k
         mid = mp_dates.date2num(dates)[int(len(dates) / 2)]  # get middle point of the dates as plot start point
         # create some artificially plotting points, at the x-middle point of the dates, from zero up the y-axis' maximum
-        points = np.array([[mid] * len(dates), np.linspace(0, plot_item.cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS, len(dates))]).T.reshape(-1, 1, 2)
+        points = np.array([[mid] * len(dates), np.linspace(0, plot_item.total * PLOT_YLIM_ENLARGER_DAILYS, len(dates))]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1) # create lines from neighbour to neighbour of elements in 'points'
         # set proportion for colors, matching plot item's own 100k prevalence
-        proportion = np.linspace(0, max(plot_item.cumulative / plot_item.population * 100000) * PLOT_YLIM_ENLARGER_DAILYS, len(dates))
+        proportion = np.linspace(0, plot_item.prevalence_100k * PLOT_YLIM_ENLARGER_DAILYS, len(dates))
         # set norm to match global max, shooting the colors over the plot item's max, if it is not the global prevalence max itself
         #   this norm together with the max of 'proportion' is basically the core, to indicate the relative prevalence
-        norm = plt.Normalize(0, glob_max)
-        cmap = 'YlOrRd' if type(plot_item) == dataMangling.District else 'Reds'
+        norm = plt.Normalize(0, plot_item.max_overall_prevalence_100k)
+        cmap = 'YlOrRd' if isDistrict else 'Reds'
         lc = LineCollection(segments, cmap=cmap, norm=norm, alpha=0.4)
         lc.set_array(proportion)
         lc.set_linewidth(6 * fig.dpi) # plot with enough width to fill the background horizontally
@@ -200,7 +200,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     #
     # plot raw daily cases
-    if not type(plot_item) == dataMangling.District:
+    if not isDistrict:
         ax.plot(dates, daily, color='w', linewidth=7, alpha=0.1) # plot white background for next line
     red_days = 5 # '5' matches the minor ticks on x-axis
     lns1 = ax.plot(dates, daily, label=f"raw daily cases (weekend-flawed), red: last {red_days}", color='#B0B0B0', zorder=1)
@@ -217,10 +217,10 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     #
     # plot cumulative cases data for the 2nd y axis
-    ax_cumu.plot(dates, cumulative, color='w', linewidth=7, alpha=0.1) # plot white background for next line
-    lns5 = ax_cumu.plot(dates, cumulative, label="total cases reported at RiskLayer", color='#50C0FF', linestyle='dotted', linewidth=2)
+    ax_cumu.plot(dates, plot_item.cumulative, color='w', linewidth=7, alpha=0.1) # plot white background for next line
+    lns5 = ax_cumu.plot(dates, plot_item.cumulative, label="total cases reported at RiskLayer", color='#50C0FF', linestyle='dotted', linewidth=2)
 
-    ax_cumu.set_ylim(0, max(cumulative) * PLOT_YLIM_ENLARGER_CUMU)
+    ax_cumu.set_ylim(0, max(plot_item.cumulative) * PLOT_YLIM_ENLARGER_CUMU)
     ax_cumu.set_ylabel("cumulative total cases")
     ax_cumu.yaxis.label.set_color(color=lns5[0].get_color())
     ax_cumu.tick_params(axis='y', colors=lns5[0].get_color())
@@ -228,15 +228,13 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     #
     # plot rolling average
     # rolling averages for daily cases, over two weeks
-    window = 14
-    rolling_mean = pandas.DataFrame(daily).rolling(window=window, center=True).mean()
-    rmean_data = rolling_mean[0]
-    if not isKreis:
-        ax.plot(dates, rolling_mean, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
-        lns3 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='#FFD010', linewidth=3, zorder=2)
+    if not isDistrict:
+        ax.plot(dates, plot_item.rolling_mean14, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
+        lns3 = ax.plot(dates, plot_item.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=2)
     else:
-        lns3 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='#FFD010', linewidth=3, zorder=0)
-        ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % window,
+        rmean_data = plot_item.rolling_mean14[0]
+        lns3 = ax.plot(dates, plot_item.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=0)
+        ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % 14,
                                  color=lns3[0].get_color(), linewidth=0, zorder=0)
 
     #
@@ -253,7 +251,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     #
     # plot rolling sum of prior 7 days cases for date, if it is a Kreis, where the according incidence borders are of interest
     yminor = 0
-    if isKreis:
+    if isDistrict:
         # plot 7 day sums, only if incidence borders can be calculated via population
         # according grid for it
         ax_sum.grid(True, which='major', axis='y', ls='-', alpha=0.6, color=COLOR_INCID_SUMS)  # if not set here above, ticks of left side y axis won't be visible
@@ -266,16 +264,12 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
         ax_cumu.spines["right"].set_position(("axes", 1.15))
 
         # incidences graph plotting
-        window = 7
-        label = 'sum of daily cases, for prior %s days of date' % window
-
-        incidence_max = max(incidences)
-
+        label = 'sum of daily cases, for prior %s days of date' % 7
         # plot yellow background for sum graph, then graph over it
-        ax_sum.plot(dates, incidences, label=label, color='yellow', linewidth=7, alpha=0.4)
-        lns0 = ax_sum.plot(dates, incidences, label=label, color=COLOR_INCID_SUMS)
-
+        ax_sum.plot(dates, plot_item.incidence_sums, label=label, color='yellow', linewidth=7, alpha=0.4)
+        lns0 = ax_sum.plot(dates, plot_item.incidence_sums, label=label, color=COLOR_INCID_SUMS)
         # set axis properties
+        incidence_max = max(plot_item.incidence_sums)
         ax_sum.set_ylim(0, incidence_max * PLOT_YLIM_ENLARGER_DAILYS)
         # also yellow background for label
         ax_sum.set_ylabel(label + "\n(to determine incidence borders)", color=COLOR_INCID_SUMS,
@@ -296,14 +290,14 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
         # plot incidence border lines
-        limit = weeklyIncidenceLimit1Per100k * population / 100000
+        limit = weeklyIncidenceLimit1Per100k * plot_item.population / 100000
         lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
                              label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c',
                              linestyle=(0, (3, 5)))
 
         # plot second incidence border only if first one is nearly reached, to have no unneeded large y1 numbers which would worsen the view
         if incidence_max > limit * 0.8:
-            limit = weeklyIncidenceLimit2Per100k * population / 100000
+            limit = weeklyIncidenceLimit2Per100k * plot_item.population / 100000
             lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
                                  label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
@@ -318,14 +312,11 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
         yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
-    if not isKreis:
+    if not isDistrict:
         #
         #  plot rolling averages for daily cases, over a wekk, if not a Kreis
-        window = 7
-        rolling_mean = pandas.DataFrame(daily).rolling(window=window, center=True).mean()
-        rmean_data = rolling_mean[0]
-        ax.plot(dates, rolling_mean, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
-        lns6_1 = ax.plot(dates, rolling_mean, label="centered moving average, %s days cases" % window, color='#900090', zorder=3)
+        ax.plot(dates, plot_item.rolling_mean7, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
+        lns6_1 = ax.plot(dates, plot_item.rolling_mean7, label="centered moving average, %s days cases" % 7, color='#900090', zorder=3)
 
         ax.grid(True, which='major', axis='y', ls='-', alpha=0.9)  # if not set here above, ticks of left side y axis won't be visible
         ax.grid(True, which='minor', axis='y', ls='--', alpha=0.7)
@@ -341,8 +332,8 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     # the '1.3'-multiplier below, for setting the y-position of the marker, is a none-deterministic evaluated value which lets the
     #   triangle marker's bottom point be placed nearly at the x-axis, for all of the 16 Bundeslaender with their different case numbers
     marker_y = yminor * 1.3 if yminor > 1 else 0.8
-    center, signal = dataMangling.temporal_center(daily)
-    center_date = datacolumns.values[int(round(center))]
+    center = plot_item.center
+    center_date = plot_item.center_date
     # (first a dummy marker just for later showing in legend with smaller symbol, gets plotted over with 2nd one)
     lns4_1 = ax_for_marker.plot(dates[int(round(center))], [marker_y], marker="v", color='green', markersize=8, label="marker for 'expectation day': " + center_date,
                                 linestyle="")
@@ -362,17 +353,21 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     # plot legend on top axis, and title
     ax_for_marker.legend(lines, labs, loc='upper left', facecolor="#fafafa", framealpha=0.7, title=text, prop={'size': 8}, title_fontsize=8)
-    plt.title(title)
+    plt.title(plot_item.title)
 
     # set x axis major ticks to month starts
     ax.xaxis.set_major_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 32, 31)))  # if placing this setting above all other, major ticks won't appear
     ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m"))  # its date formatter must be set, if setting major locator
 
     # print(title)
-    if isKreis:
+    if isDistrict:
         equalize_axes_ticks(base_ax=ax_sum, adjust_axs=[ax, ax_cumu])
     else:
         equalize_axes_ticks(base_ax=ax, adjust_axs=[ax_cumu])
+
+    if plot_item.filename:
+        fig.savefig(os.path.join(dataFiles.PICS_PATH, plot_item.filename), bbox_inches='tight')
+
     if ifShow:
         if plt.get_backend() in  matplotlib.rcsetup.interactive_bk:# ['qt5agg', 'tkagg']:
             # at least above backends would not show the out ax_cumu spline, it not tight_layout() set
@@ -383,25 +378,25 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
         plt.clf()
         plt.close("all")
 
-    return plt, fig, ax, ax_cumu
+    return plt, fig, ax, ax_cumu # TODO: do we need to return?
 
 
 def test_plot_Kreis(dm):
     ## Kreis
     AGS = "0"
     #AGS = "1001"
-    AGS = "5370"
+    AGS = "5711"
     # AGS = "9377"
     dstr = dataMangling.get_Kreis(dm, AGS)
     plot_timeseries(dm, dstr)
 
-    plot_Kreise(ts, bnn, dates, datacolumns, AGS, max_prevalence_100k, ifPrint=False, ifShow=True, ifCleanup=False)
+    plot_Kreise(dm, [AGS], ifPrint=False, ifShow=True, ifCleanup=False)
 
-def plot_Kreise(dm, Kreise_AGS, ifPrint=True):
+def plot_Kreise(dm, Kreise_AGS, ifPrint=True, ifShow=False, ifCleanup=True):
     done = []
     for AGS in Kreise_AGS:
         dstr = dataMangling.get_Kreis(dm, AGS)
-        plot_timeseries(dm, dstr, ifShow=False)
+        plot_timeseries(dm, dstr, ifShow=ifShow, ifCleanup=ifCleanup)
         done.append((dstr.title, dstr.filename))
         if ifPrint:
             print (dstr.title, dstr.filename)
@@ -414,7 +409,7 @@ def plot_Kreise(dm, Kreise_AGS, ifPrint=True):
     return done
 
 
-def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=True):
+def plot_Kreise_parallel(dm, Kreise_AGS, ifPrint=True):
     import multiprocessing as mp
 
     # one CPU should be left free for the system, and multiprocessing makes only sense for at least 2 free CPUs,
@@ -424,14 +419,14 @@ def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence
     wanted_cpus = available_cpus - leave_alone_cpus
 
     if available_cpus < wanted_cpus or wanted_cpus < 2:
-        return plot_Kreise(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence_100k, ifPrint=ifPrint)
+        return plot_Kreise(dm, Kreise_AGS, ifPrint=ifPrint)
 
     done = []
 
     # setup process pool
     pool = mp.Pool(wanted_cpus)
     try:
-        done = pool.starmap(plot_Kreise, [(ts, bnn, dates, datacolumns, [AGS], max_prevalence_100k, ifPrint) for AGS in Kreise_AGS])
+        done = pool.starmap(plot_Kreise, [(dm, [AGS], ifPrint) for AGS in Kreise_AGS])
     except KeyboardInterrupt:
         # without catching this here we will never be able to manually stop running in a sane way
         pool.terminate()
@@ -441,13 +436,13 @@ def plot_Kreise_parallel(ts, bnn, dates, datacolumns, Kreise_AGS, max_prevalence
 
     return done
 
-def test_plot_Bundesland(dm: dataMangling.DataMangled, Bundesland = "Hessen"):
+
+def test_plot_Bundesland(dm, Bundesland="Bayern", ifShow=True):
     ## Bundesland
     # Bundesland = "Dummyland"
-    
     ts_BuLa, _, _, Bundeslaender, _, _ = dataMangling.additionalColumns(dm.ts, dm.bnn)
     fed = dataMangling.get_BuLa(Bundeslaender, Bundesland, dm.datacolumns)
-    plot_timeseries(dm, fed)
+    plot_timeseries(dm, fed, ifShow=ifShow)
 
 
 def plot_all_Bundeslaender(dm: dataMangling.DataMangled, ifPrint=True):
@@ -455,9 +450,7 @@ def plot_all_Bundeslaender(dm: dataMangling.DataMangled, ifPrint=True):
     filenames, population = [], 0
     done = []
 
-    BL = Bundeslaender.drop(labels=['Deutschland', 'Dummyland'])
-    max_prevalence_100k = max(BL[BL.columns[-2]] / BL[BL.columns[-1]]) * 100000
-    # print(max_prevalence_100k)
+    BL = Bundeslaender.drop(labels=['Deutschland'])
 
     for BL in Bundeslaender.index.tolist():
         print (BL, end=" ")
@@ -487,7 +480,7 @@ if __name__ == '__main__':
         test_plot_Bundesland(dm, Bundesland="Deutschland")
 
     longrunner=True
-    if longrunner:    
+    if longrunner:
         plot_Kreise(dm, dm.ts["AGS"].tolist())
         plot_all_Bundeslaender(dm)
         

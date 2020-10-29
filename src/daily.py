@@ -110,7 +110,7 @@ def download_all(showExtremes=True):
     return new_CSV, new_master_state 
     
 
-def generate_all_pages(withSyntheticData=True):
+def generate_all_pages(withSyntheticData=False):
     
     # haupt = dataFiles.load_master_sheet_haupt(timestamp="") # timestamp="" means newest
     dm = dataMangling.dataMangled(withSynthetic=withSyntheticData, haupt=None)
@@ -140,7 +140,7 @@ def generate_all_plots(withSyntheticData=True):
     
     listOfAGSs = dm.ts["AGS"].tolist()
     print ("Plotting %d images, for each Kreis. Patience please: " % len(listOfAGSs))
-    done = dataPlotting.plot_Kreise(dm, listOfAGSs, ifPrint=False)
+    done = dataPlotting.plot_Kreise_parallel(dm, listOfAGSs, ifPrint=True)
     print ("plot_Kreise done: %d items" % len(done))
     print()
 
@@ -185,7 +185,7 @@ def git_commit_and_push(path=WWW_REPO_PATH, script=WWW_REPO_PATH_GIT_SCRIPT):
 
 
 def daily_update(regenerate_pages_regardless_if_new_data=False, regenerate_plots_regardless_if_new_data=False,
-                 publish=True, showExtremes=True, withSyntheticData=True, downloadNewData=True):
+                 publish=True, showExtremes=True, withSyntheticData=False, downloadNewData=True):
     print ("Started at", ("%s" % datetime.datetime.now()) [:19],"\n")
     
     new_CSV = success1 = success2 = success3 = success4 = success5 = False

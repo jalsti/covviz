@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     if(cols > 1) {
           al = document.createElement("a");
-          al.text = "reduce number of images/row";
+          al.text = "reduce number of images/row ('zoom in')";
           al.href = document.location.href.replace("cols="+cols, "cols=" +(cols-1));
           header.appendChild(al.cloneNode(true));
           footer.appendChild(al);
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     if(cols < locs.length) {
           am = document.createElement("a");
-          am.text = "enlarge number of images/row";
+          am.text = "enlarge number of images/row ('zoom out')";
           am.href = document.location.href.replace("cols="+cols, "cols=" +(cols+1));
           header.appendChild(am.cloneNode(true));
           footer.appendChild(am);

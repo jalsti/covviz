@@ -240,15 +240,15 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
         
         labels += ['%d' % dstr.new_last7days]
         labels += [dstr.link]
-        labels += ["%d" % dstr.prevalence1mio]
+        labels += ["%d" % dstr.prevalence_1mio]
         labels += ['%d' % dstr.incidence_sum7_1mio]
-        labels += ['{:,}'.format(dstr.pop)]
+        labels += ['{:,}'.format(dstr.population)]
         labels += ["%.1f" % dstr.center]
         labels += ["%.2f" % dstr.reff_4_7]
         labels += [bulaLink(dstr.name_BL)]
         labels += [flag_image(dstr.name_BL, dstr.pop_BL)]
         # labels += [nearby_links]
-        page += toHTMLRow(dm.ts_sorted, AGS, dm.datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
+        page += toHTMLRow(dm.ts_sorted, int(AGS), dm.datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
         
     page += "</table>"
     if divEnveloped:
@@ -279,7 +279,7 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
     page += '<caption style="text-align:right;">%s</caption>' % caption
     page +="<tr>"
 
-    dc_head = datacolumns.tolist()
+    dc_head = dm.datacolumns.tolist()
     dc_head.reverse()
 
     cols = ["7days new cases", "Bundesland", "info", "Prev. p.1mio", "7days Incid.p.1mio", "Population", "expectation day", "Reff_4_7" ]
@@ -299,7 +299,7 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
         labels += ['%d' % fed.new_last7days]
         labels += [fed.link]
         labels += [flag_image(name_BL)]
-        labels += ["%d" % fed.prevalence1mio]
+        labels += ["%d" % fed.prevalence_1mio]
         labels += ['%d' % fed.incidence_sum7_1mio]
         labels += ['{:,}'.format(fed.population)]
         labels += ["%.2f" % fed.center]

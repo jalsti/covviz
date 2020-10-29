@@ -53,7 +53,7 @@ class DataMangled:
         Infections_Bundesland: infections over all districts in the Bundesland (federal state) for the district
         Bundesland: Bundesland (federal state) for the district
         Population_Bundesland: population of district's federal state
-        "Infections_Bundesland per 10000 population": overall cumulative sum of Covid infections for district's federal state
+        "Infections_Bundesland per 1000 population": overall cumulative sum of Covid infections for district's federal state
         Population: population of the district
     """
 
@@ -117,32 +117,43 @@ class District:
     """infections total of the federal state ('Bundesland') the district lays in"""
 
     incidence_sum7_1mio: int = None
-    """incidence sum of the last 7 days of the district's cases"""
+    """incidence sum of the last 7 days of the district's cases for 1,000,000 `population`"""
+
+    incidence_sum7_100k: int = None
+    """incidence sum of the last 7 days of the district's cases for 100,000 `population`"""
 
     link: str =None
     """HTML link for directly jumping to district"""
 
+    incidence_sums: List[int] = None
+    """list of 7 day incidence sums over all time, since 05.03.2020"""
+
+    max_overall_prevalence_100k: float = None
+    """maximum prevalence value over all districts"""
+
     name_BL: str = None # TODO: just link federal state, as soon as it has been converted into a container class
     """name of the federal state ('Bundesland') the district lays in"""
-
 
     new_last7days: int = None
     """sum of new cases of last 7 days"""
 
-    pop: int = None
+    population: int = None
     """population of district"""
 
     pop_BL: int = None # TODO: just link federal state, as soon as it has been converted into a container class
     """population of the federal state ('Bundesland') the district lays in"""
 
-    prevalence1mio: float = None
+    prevalence_1mio: float = None
+    """prevalence for `cumulative` cases per 100,000 `pop`ulation"""
+
+    prevalence_100k: float = None
     """prevalence for `cumulative` cases per million `pop`ulation"""
 
     sources: str = None
     """HTML links to the sources of the data"""
 
     title: str = None
-    """title of district, built from dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.pop"""
+    """title of district, built from dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.population"""
 
     total: int = None
     """total cases over time (last entry of `cumulative`)"""
@@ -180,8 +191,17 @@ class FedState:
     incidence_sum7_1mio: int = None
     """incidence sum of the last 7 days of the federal state's cases"""
 
-    link: str =None
+    incidence_sum7_100k: int = None
+    """incidence sum of the last 7 days of the federal state's cases for 100,000 `population`"""
+
+    incidence_sums: List[int] = None
+    """list of 7 day incidence sums over all time, since 05.03.2020"""
+
+    link: str = None
     """HTML link for directly jumping to federal state"""
+
+    max_overall_prevalence_100k: float = None
+    """maximum prevalence value of all district"""
 
     new_last7days: int = None
     """sum of new cases of last 7 days"""
@@ -189,11 +209,14 @@ class FedState:
     population: int = None
     """population of federal state"""
 
-    prevalence1mio: float = None
+    prevalence_1mio: float = None
     """prevalence for `cumulative` cases per million `pop`ulation"""
 
+    prevalence_100k: float = None
+    """prevalence for `cumulative` cases per 100,000 `pop`ulation"""
+
     title: str = None
-    """title of federal state, built from dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.pop"""
+    """title of federal state, built from dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.population"""
 
     total: int = None
     """total cases over time (last entry of `cumulative`)"""
@@ -211,9 +234,14 @@ class FedState:
 feds = dict()
 """global dictionary to cache every `FedState`, which once has been gotten via `get_BuLa()`"""
 
-
 districts = dict()
 """global dictionary to cache every `District`, which once has been gotten via `get_Kreis()`"""
+
+max_district_prevalence_100k: float = 0.0
+"""maximum prevalence value over all districts"""
+
+max_federal_state_prevalence_100k: float = 0.0
+"""maximum prevalence value over all federal states"""
 
 mangledData = DataMangled
 """global object to store the mangled main data once"""
@@ -246,7 +274,7 @@ def AGS_to_ts_total(ts, AGS):
     """
     AGS = ("00000"+AGS)[-5:]
     row = ts.loc[ts['AGS'] == AGS]
-    return row.values[0][2:].tolist()
+    return row.values[0][2:].astype('int').tolist()
 
 
 def AGS_to_ts_daily(ts, AGS):
@@ -344,33 +372,45 @@ def temporal_center(data):
 
     signal[int(round(center))]=max(ddata)*0.25
     return center, signal
-    
-    
+
+
 def get_Kreis(dm: DataMangled, AGS):
+
+    global max_overall_prevalence_100k
 
     ags_int = int(AGS)
     AGS = str(AGS)
+
     # use cached version it it exists already
     if ags_int in districts:
         dstr = districts[ags_int]
         # print('*'*12 + " returning known district from cache:", dstr.title)
     else:
+
         dstr = District()
         dstr.AGS = "%05i" % ags_int
 
+        # set max prevalence over all districts
+        dstr.max_overall_prevalence_100k = max_district_prevalence_100k
+
          # get data and names and base data
-        dstr.gen, dstr.bez, dstr.inf, dstr.pop = AGS_to_population(dm.bnn, AGS)
+        dstr.gen, dstr.bez, dstr.inf, dstr.population = AGS_to_population(dm.bnn, AGS)
         dstr.name_BL, dstr.inf_BL, dstr.pop_BL = AGS_to_Bundesland(dm.bnn, AGS)
         dstr.daily = AGS_to_ts_daily(dm.ts, dstr.AGS)
         dstr.cumulative = AGS_to_ts_total(dm.ts, dstr.AGS)
         dstr.total = dstr.cumulative[-1]
 
-        # calculate prevalence
-        dstr.prevalence1mio = dstr.total / dstr.pop * 1000000 # TODO: change prevalence to more commen per 100k
+        # calculate prevalence per 1 million population, 100,000 population
+        dstr.prevalence_1mio = dstr.total / dstr.population * 1000000.0
+        dstr.prevalence_100k = dstr.total / dstr.population * 100000.0
 
         # calculate rolling means
         dstr.rolling_mean7 = pandas.DataFrame(dstr.daily).rolling(window=7, center=True).mean()
         dstr.rolling_mean14 = pandas.DataFrame(dstr.daily).rolling(window=14, center=True).mean()
+
+        # calculate 7-day incindence sums
+        incidences = pandas.DataFrame(dstr.daily).rolling(window=7).sum()
+        dstr.incidence_sums = list(map(int, incidences.fillna(0).values))
 
         # calculate expectation day as center position and as date
         dstr.center, _ = temporal_center(dstr.daily)
@@ -382,8 +422,9 @@ def get_Kreis(dm: DataMangled, AGS):
         # get sum of new cases of last 7 days out of `dm`
         dstr.new_last7days = dm.ts_sorted["new_last7days"][ags_int]
 
-        # calculate last 7 days' incidence per 1 milllion population
-        dstr.incidence_sum7_1mio = dstr.new_last7days / dstr.pop * 1000000
+        # calculate last 7 days' incidence per 1 million population, 100,000 population
+        dstr.incidence_sum7_1mio = dstr.new_last7days / dstr.population * 1000000
+        dstr.incidence_sum7_100k = dstr.new_last7days / dstr.population * 100000
 
         # get HTML links of district and data sources
         dstr.link = districtDistances.kreis_link(dm.bnn, AGS)[2]
@@ -391,7 +432,7 @@ def get_Kreis(dm: DataMangled, AGS):
         if dstr.sources is None: dstr.sources =""
 
         # set plotting title and file name
-        dstr.title = "%s (%s #%s, %s) Population=%d" % (dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.pop)
+        dstr.title = "%s (%s #%s, %s) Population=%d" % (dstr.gen, dstr.bez, dstr.AGS, dstr.name_BL, dstr.population)
         dstr.filename = "Kreis_%s.png" % dstr.AGS
 
         # TODO: add data source's name, description, license
@@ -417,12 +458,17 @@ def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
 
 
 def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
+    global max_federal_state_prevalence_100k, mangledData
 
     if name in feds:
         fed = feds[name]
     else:
         fed = FedState()
         fed.name = name
+
+        # set max prevalence over all fed states
+        fed.max_overall_prevalence_100k = max_federal_state_prevalence_100k
+
         # get data and names
         fed.filename = "bundesland_" + name + ".png"
         if name=="Deutschland":
@@ -431,7 +477,7 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
 
         row = Bundeslaender[datacolumns].loc[[name]]
 
-        fed.cumulative=row.values[0].tolist()
+        fed.cumulative=row.values[0].astype('int').tolist()
         diff = row.diff(axis=1)
         fed.daily = diff.values[0].tolist()
 
@@ -439,12 +485,17 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
 
         fed.total = fed.cumulative[-1]
 
-        # calculate prevalence
-        fed.prevalence1mio = fed.total / fed.population * 1000000  # TODO: change prevalence to more commen per 100k
+        # calculate prevalence per 1 million population, 100,000 population
+        fed.prevalence_1mio = fed.total / fed.population * 1000000.0
+        fed.prevalence_100k = fed.total / fed.population * 100000.0
 
         # calculate rolling means
         fed.rolling_mean7 = pandas.DataFrame(fed.daily).rolling(window=7, center=True).mean()
         fed.rolling_mean14 = pandas.DataFrame(fed.daily).rolling(window=14, center=True).mean()
+
+        # calculate 7-day incindence sums
+        incidences = pandas.DataFrame(fed.daily).rolling(window=7).sum()
+        fed.incidence_sums = list(map(int, incidences.fillna(0).values))
 
         # calculate expectation day as center position and as date
         fed.center, _ = temporal_center(fed.daily)
@@ -456,8 +507,9 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
         # get sum of new cases of last 7 days out of `dm`
         fed.new_last7days = Bundeslaender["new_last7days"][name]
 
-        # calculate last 7 days' incidence per 1 milllion population
+        # calculate last 7 days' incidence per 1 milllion population, 100,000 population
         fed.incidence_sum7_1mio = fed.new_last7days / fed.population * 1000000
+        fed.incidence_sum7_100k = fed.new_last7days / fed.population * 100000
 
         # get HTML link of federal state
         fed.link = bulaLink(name)
@@ -732,7 +784,7 @@ def test_some_mangling():
     print ("\nKreis")
     dstr = get_Kreis(dm, AGS)
     print (dstr.daily, dstr.cumulative)
-    print (dstr.title, dstr.filename, dstr.pop)
+    print (dstr.title, dstr.filename, dstr.population)
 
     print ("\nBundesländer")
     ts_BuLa, Bundeslaender = join_tables_for_and_aggregate_Bundeslaender(ts, bnn)
@@ -809,14 +861,24 @@ def dataMangled(withSynthetic=True, ifPrint=True, haupt=None, haupt_timestamp=""
         * haupt_timestamp=="" means newest
 
     """
-    global mangledData
+    global mangledData, max_federal_state_prevalence_100k, max_district_prevalence_100k
     if mangledData.ts is not None:
         return mangledData
 
     ts, bnn = dataFiles.data(withSynthetic=withSynthetic, ifPrint=ifPrint)
+
+    # set max prevalence over all district, fed states
+
     if haupt is None:
         haupt = dataFiles.load_master_sheet_haupt(timestamp=haupt_timestamp)
-    mangledData = DataMangled(*additionalColumns(ts,bnn), haupt)
+    mangledData = DataMangled(*additionalColumns(ts, bnn), haupt)
+
+    max_date = mangledData.datacolumns[-1]
+    data = mangledData.ts_sorted
+    max_district_prevalence_100k = max(data[max_date] / data['Population']) * 100000
+    data = mangledData.Bundeslaender_sorted
+    max_federal_state_prevalence_100k = max(data[max_date] / data['Population']) * 100000
+    # max_federal_state_prevalence_100k = max(bnn[bnn.columns[7]] / bnn[bnn.columns[9]]) * 100000
 
     return mangledData
 
