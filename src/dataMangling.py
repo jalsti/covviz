@@ -852,7 +852,7 @@ def additionalColumns(ts,bnn):
 
     return  ts, bnn, ts_sorted, Bundeslaender_sorted, dates, datacolumns
 
-def dataMangled(withSynthetic=True, ifPrint=True, haupt=None, haupt_timestamp=""):
+def dataMangled(withSynthetic=False, ifPrint=True, haupt=None, haupt_timestamp=""):
     """
     this loads from disk first
 

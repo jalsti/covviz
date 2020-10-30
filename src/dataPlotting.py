@@ -471,7 +471,7 @@ if __name__ == '__main__':
 
     # ts, bnn = dataFiles.data(withSynthetic=True)
     # dates = dataMangling.dates_list(ts)
-    dm = dataMangling.dataMangled(withSynthetic=True)
+    dm = dataMangling.dataMangled(withSynthetic=False)
 
     examples=True
     if examples:

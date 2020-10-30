@@ -153,7 +153,11 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
     for AGS in district_AGSs:
         dstr = dataMangling.get_Kreis(dm, AGS)
 
-        nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(dm.bnn, distances, AGS, km) if AGS else ""
+        try:
+            nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(dm.bnn, distances, AGS, km) if AGS else ""
+        except ValueError:
+            print(f"'{fed.name}' has no neighbours")
+            continue    # FIXME: where does the synthetic data still come in while at daily_update it goes in as False?
 
         anchor = "AGS" + dstr.AGS
         page +="<hr><h3 id=%s>%s AGS=%s</h3>\n" % (anchor, dstr.title, AGS)
