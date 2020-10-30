@@ -74,20 +74,16 @@ body {
 th, td {
   text-align:center;
   font-family: 'Roboto Condensed', sans-serif;
+  vertical-align: middle;
+  text-align: center;
+  border: 1px solid black;
+  min-width: 18px;
 }
 
 td span
 {
   font-family: 'Teko', sans-serif;
   text-align:center;
-}
-
-th
-{
-  vertical-align: middle;
-  text-align: center;
-  border: 1px solid black;
-  min-width: 18px;
 }
 
 th span
@@ -136,7 +132,7 @@ th span
 // fix header row:
 .tableFixHead          { overflow-y: auto; height: 100px; }
 .tableFixHead th { position: sticky; top: 0; background-color: white; }
-      
+
 // fix borders:
 // .tableFixHead,.tableFixHead td {   box-shadow: inset 1px -1px #000; }
       
@@ -192,7 +188,7 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
         page+= '<div class="tablearea" id="tablediv_kreise">'
     page+= '<table id="%s" class="tableFixHead">\n' % tid
     caption="Click on column header name, to sort by that column; click again for other direction."
-    page += '<caption id="caption_kreise" style="text-align:right;">%s</caption>\n' % caption
+    page += '<caption id="caption_kreise" style="text-align:left;">%s</caption>\n' % caption
     page +="<tr>"
 
     dc_head = dm.datacolumns.tolist()
@@ -273,7 +269,7 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
         page += '<div class="tablearea" id="tablediv_bundeslaender">' 
     page += '<table id="%s" class="tableFixHead">\n' % tid
     caption="Click on column header name, to sort by that column; click again for other direction."
-    page += '<caption style="text-align:right;">%s</caption>' % caption
+    page += '<caption style="text-align:left;">%s</caption>' % caption
     page +="<tr>"
 
     dc_head = dm.datacolumns.tolist()
@@ -315,7 +311,31 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
             f.write(page)
 
     return fn, page
-    
+
+def plot_values_to_HTML_table(labels: [str], data_rows: [], date_columns: [], caption: str = 'Plot values for dates'):
+    """create a simple html table"""
+    table = ""
+    table += '<div class="tablearea">\n<table class="tableFixHead">\n'
+    table += '<caption">%s</caption>\n' % caption
+
+    table += "<tr>"
+    table += "<th>&nbsp;</th>"
+    for col in date_columns:
+        table += "<th><span>%s&nbsp;</span></th>" % col[:6]
+    table +="</tr>"
+
+    for i, label in enumerate(labels):
+        table += "<tr>"
+        table += "<td>%s</td>" % label
+        for col in data_rows[i]:
+            val = "{:.2f}".format(col) if type(col) == float else str(col)
+            table += "<td>%s</td>" % val
+        table +="</tr>"
+
+    table += "</table>\n</div>"
+
+    return table
+
 def colormap():
     # cmap=plt.get_cmap("Wistia")
     # cmap=plt.get_cmap("summer")

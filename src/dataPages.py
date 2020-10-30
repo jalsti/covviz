@@ -121,7 +121,14 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
             "relative to all other {plural}; e.g. the less colourful the gradient is, " \
             "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \
             "<br/>\n".format(singular="Bundesland (federal state)", plural="Bundeslaender (federal states)")
-    page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % fed.cumulative
+
+    # add table with rows for some plotted values
+    date_columns_reversed = dm.datacolumns.tolist()
+    date_columns_reversed.reverse()
+    labels = ["total cases", "daily cases", "7&nbsp;days mean"]
+    data = [fed.cumulative[::-1], fed.daily[::-1], fed.rolling_mean7.fillna('-').values.ravel().tolist()[::-1]]
+    page += dataTable.plot_values_to_HTML_table(labels=labels, data_rows=data, date_columns=date_columns_reversed)
+    # page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % fed.cumulative
     
     page +="<hr><h2 id='Kreise'>%s's %d Kreise</h2>\n" % (fed.name, len(district_AGSs))
     page +="<h3>Sorted by 'expectation day'</h3>\n"
@@ -150,8 +157,8 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
         try:
             nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(dm.bnn, distances, AGS, km) if AGS else ""
         except ValueError:
-            print(f"'{fed.name}' has no neighbours")
-            continue    # FIXME: where does the synthetic data still come in while at daily_update it goes in as False?
+            print(f"'{fed.name}' has no neighbours, ignoring it")
+            continue
 
         anchor = "AGS" + dstr.AGS
         page +="<hr><h3 id=%s>%s AGS=%s</h3>\n" % (anchor, dstr.title, AGS)
@@ -185,12 +192,17 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
         else:
             kreis = kreissitz = dstr.name # we have that wikipedia info about kreissitz only for 294 out of 401, for remainder fall back to kreis name
         page += ", " + search_URLs(kreis, kreissitz)
-        page +='<br/>total cases: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % dstr.cumulative
-        page +='<br/>incidence sums: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % dstr.incidence_sums
+
+
+        # add table with rows for some plotted values
+        labels = ["total cases", "daily cases", "7&nbsp;day sum", "7&nbsp;day incid."]
+        data = [dstr.cumulative[::-1], dstr.daily[::-1], dstr.incidence_sums[::-1], dstr.incidence_values[::-1]]
+        page += dataTable.plot_values_to_HTML_table(labels=labels, data_rows=data, date_columns=date_columns_reversed)
+
         page += "<p/>"
         page +='<a href="#">Back to top</a> or: Up to <a href="about.html">about.html</a>\n'
     
-    page +=footerlink()
+    page += footerlink()
     page += dataTable.PAGE_END
     
     fn=os.path.join(dataFiles.PAGES_PATH, filename_HTML)
@@ -317,7 +329,7 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
     prevalence = cumulative[-1] / DE["Population"] * 100000.0
     page += "population: {:,}".format(DE["Population"])
     page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/>\n".format(prevalence)
-    
+
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
 
     

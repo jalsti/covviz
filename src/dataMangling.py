@@ -133,14 +133,17 @@ class CovidDataArea:
     incidence_sum7_1mio: int = None
     """incidence sum of the last 7 days of the area's cases per million `population`"""
 
-    incidence_sum7_1ook: int = None
+    incidence_sum7_100k: int = None
     """incidence sum of the last 7 days of the area's casesper 100,000 `population"""
 
     link: str =None
     """HTML link for directly jumping to area"""
 
     incidence_sums: List[int] = None
-    """list of 7 day incidence sums over all time, since 05.03.2020"""
+    """list of 7 day incidence case's sums over all time, since 05.03.2020"""
+
+    incidence_values: List[float] = None
+    """list of 7 day incidence values over all time, since 05.03.2020"""
 
     max_overall_prevalence_100k: float = None
     """maximum prevalence value over all areas of this type"""
@@ -249,7 +252,7 @@ def AGS_to_ts_daily(ts, AGS):
     row = row.drop(['AGS', 'ADMIN'], axis=1)
     # print(row.values); exit()
     # return row
-    diff = row.diff(axis=1)
+    diff = row.diff(axis=1).fillna(0).astype('int')
     return diff.values[0].tolist()
 
 
@@ -340,62 +343,63 @@ def get_Kreis(AGS):
 
     # use cached version it it exists already
     if ags_int in mangledData.districts:
-        dstr = mangledData.districts[ags_int]
+        cov_area = mangledData.districts[ags_int]
         # print('*'*12 + " returning known district from cache:", dstr.title)
     else:
 
-        dstr = District()
-        dstr.AGS = "%05i" % ags_int
+        cov_area = District()
+        cov_area.AGS = "%05i" % ags_int
 
         # set max prevalence over all districts
-        dstr.max_overall_prevalence_100k = mangledData.max_district_prevalence_100k
+        cov_area.max_overall_prevalence_100k = mangledData.max_district_prevalence_100k
 
          # get data and names and base data
-        dstr.name, dstr.type_name, dstr.infections_bnn, dstr.population = AGS_to_population(mangledData.bnn, AGS)
-        dstr.fed_states_name, dstr.fed_states_infections, dstr.fed_states__population = AGS_to_Bundesland(mangledData.bnn, AGS)
-        dstr.daily = AGS_to_ts_daily(mangledData.ts, dstr.AGS)
-        dstr.cumulative = AGS_to_ts_total(mangledData.ts, dstr.AGS)
-        dstr.total = dstr.cumulative[-1]
+        cov_area.name, cov_area.type_name, cov_area.infections_bnn, cov_area.population = AGS_to_population(mangledData.bnn, AGS)
+        cov_area.fed_states_name, cov_area.fed_states_infections, cov_area.fed_states__population = AGS_to_Bundesland(mangledData.bnn, AGS)
+        cov_area.daily = AGS_to_ts_daily(mangledData.ts, cov_area.AGS)
+        cov_area.cumulative = AGS_to_ts_total(mangledData.ts, cov_area.AGS)
+        cov_area.total = cov_area.cumulative[-1]
 
         # calculate prevalence per 1 million population, 100,000 population
-        dstr.prevalence_1mio = dstr.total / dstr.population * 1000000.0
-        dstr.prevalence_100k = dstr.total / dstr.population * 100000.0
+        cov_area.prevalence_1mio = cov_area.total / cov_area.population * 1000000.0
+        cov_area.prevalence_100k = cov_area.total / cov_area.population * 100000.0
 
         # calculate rolling means
-        dstr.rolling_mean7 = pandas.DataFrame(dstr.daily).rolling(window=7, center=True).mean()
-        dstr.rolling_mean14 = pandas.DataFrame(dstr.daily).rolling(window=14, center=True).mean()
+        cov_area.rolling_mean7 = pandas.DataFrame(cov_area.daily).rolling(window=7, center=True).mean()
+        cov_area.rolling_mean14 = pandas.DataFrame(cov_area.daily).rolling(window=14, center=True).mean()
 
         # calculate 7-day incindence sums
-        incidences = pandas.DataFrame(dstr.daily).rolling(window=7).sum()
-        dstr.incidence_sums = list(map(int, incidences.fillna(0).values))
+        incidences = pandas.DataFrame(cov_area.daily).rolling(window=7).sum()
+        cov_area.incidence_sums = list(map(int, incidences.fillna(0).values))
+        cov_area.incidence_values = [round(elm, 2) for elm in (incidences / cov_area.population * 100000).fillna(0).values.ravel()]
 
         # calculate expectation day as center position and as date
-        dstr.center, _ = temporal_center(dstr.daily)
-        dstr.center_date = mangledData.datacolumns.values[int(round(dstr.center))]
+        cov_area.center, _ = temporal_center(cov_area.daily)
+        cov_area.center_date = mangledData.datacolumns.values[int(round(cov_area.center))]
 
         # get newest Reff_4_7 out of `mangledData`
-        dstr.reff_4_7 = mangledData.ts_sorted["Reff_4_7_last"][ags_int]
+        cov_area.reff_4_7 = mangledData.ts_sorted["Reff_4_7_last"][ags_int]
 
         # get sum of new cases of last 7 days out of `mangledData`
-        dstr.new_last7days = mangledData.ts_sorted["new_last7days"][ags_int]
+        cov_area.new_last7days = mangledData.ts_sorted["new_last7days"][ags_int]
 
         # calculate last 7 days' incidence per 1 million population, 100,000 population
-        dstr.incidence_sum7_1mio = dstr.new_last7days / dstr.population * 1000000
-        dstr.incidence_sum7_100k = dstr.new_last7days / dstr.population * 100000
+        cov_area.incidence_sum7_1mio = cov_area.new_last7days / cov_area.population * 1000000
+        cov_area.incidence_sum7_100k = cov_area.new_last7days / cov_area.population * 100000
 
         # get HTML links of district and data sources
-        dstr.link = districtDistances.kreis_link(mangledData.bnn, AGS)[2]
-        dstr.sources = sources_links(mangledData.haupt, AGS)
-        if dstr.sources is None: dstr.sources =""
+        cov_area.link = districtDistances.kreis_link(mangledData.bnn, AGS)[2]
+        cov_area.sources = sources_links(mangledData.haupt, AGS) #FIXME: sources not show any more
+        if cov_area.sources is None: cov_area.sources = "[unknown]"
 
         # set plotting title and file name
-        dstr.title = "%s (%s #%s, %s) Population=%d" % (dstr.name, dstr.type_name, dstr.AGS, dstr.fed_states_name, dstr.population)
-        dstr.filename = "Kreis_%s.png" % dstr.AGS
+        cov_area.title = "%s (%s #%s, %s) Population=%d" % (cov_area.name, cov_area.type_name, cov_area.AGS, cov_area.fed_states_name, cov_area.population)
+        cov_area.filename = "Kreis_%s.png" % cov_area.AGS
 
         # TODO: add data source's name, description, license
 
-        mangledData.districts[ags_int] = dstr
-    return dstr
+        mangledData.districts[ags_int] = cov_area
+    return cov_area
 
 
 def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
@@ -418,63 +422,64 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
     global mangledData
 
     if name in mangledData.feds:
-        fed = mangledData.feds[name]
+        cov_area = mangledData.feds[name]
     else:
-        fed = CovidDataArea()
-        fed.name = name
+        cov_area = CovidDataArea()
+        cov_area.name = name
 
         # set max prevalence over all fed states
-        fed.max_overall_prevalence_100k = mangledData.max_federal_state_prevalence_100k
+        cov_area.max_overall_prevalence_100k = mangledData.max_federal_state_prevalence_100k
 
         # get data and names
-        fed.filename = "bundesland_" + name + ".png"
+        cov_area.filename = "bundesland_" + name + ".png"
         if name=="Deutschland":
-            fed.filename = fed.filename.replace("bundesland_", "")
-        fed.population = Bundeslaender.loc[name, "Population"]
+            cov_area.filename = cov_area.filename.replace("bundesland_", "")
+        cov_area.population = Bundeslaender.loc[name, "Population"]
 
         row = Bundeslaender[datacolumns].loc[[name]]
 
-        fed.cumulative=row.values[0].astype('int').tolist()
-        diff = row.diff(axis=1)
-        fed.daily = diff.values[0].tolist()
+        cov_area.cumulative=row.values[0].astype('int').tolist()
+        diff = row.diff(axis=1).fillna(0).astype('int')
+        cov_area.daily = diff.values[0].tolist()
 
-        fed.title = name + " Population=%i" % fed.population
+        cov_area.title = name + " Population=%i" % cov_area.population
 
-        fed.total = fed.cumulative[-1]
+        cov_area.total = cov_area.cumulative[-1]
 
         # calculate prevalence per 1 million population, 100,000 population
-        fed.prevalence_1mio = fed.total / fed.population * 1000000.0
-        fed.prevalence_100k = fed.total / fed.population * 100000.0
+        cov_area.prevalence_1mio = cov_area.total / cov_area.population * 1000000.0
+        cov_area.prevalence_100k = cov_area.total / cov_area.population * 100000.0
 
         # calculate rolling means
-        fed.rolling_mean7 = pandas.DataFrame(fed.daily).rolling(window=7, center=True).mean()
-        fed.rolling_mean14 = pandas.DataFrame(fed.daily).rolling(window=14, center=True).mean()
+        cov_area.rolling_mean7 = pandas.DataFrame(cov_area.daily).rolling(window=7, center=True).mean()
+        cov_area.rolling_mean14 = pandas.DataFrame(cov_area.daily).rolling(window=14, center=True).mean()
 
         # calculate 7-day incindence sums
-        incidences = pandas.DataFrame(fed.daily).rolling(window=7).sum()
-        fed.incidence_sums = list(map(int, incidences.fillna(0).values))
+        incidences = pandas.DataFrame(cov_area.daily).rolling(window=7).sum()
+        cov_area.incidence_sums = list(map(int, incidences.fillna(0).values))
+        cov_area.incidence_values = [round(elm, 2) for elm in (incidences / cov_area.population * 100000).fillna(0).values.ravel()]
 
         # calculate expectation day as center position and as date
-        fed.center, _ = temporal_center(fed.daily)
-        fed.center_date = datacolumns.values[int(round(fed.center))]
+        cov_area.center, _ = temporal_center(cov_area.daily)
+        cov_area.center_date = datacolumns.values[int(round(cov_area.center))]
     
         # get newest Reff_4_7 out of `mangledData`
-        fed.reff_4_7 = Bundeslaender["Reff_4_7_last"][name]
+        cov_area.reff_4_7 = Bundeslaender["Reff_4_7_last"][name]
 
         # get sum of new cases of last 7 days out of `mangledData`
-        fed.new_last7days = Bundeslaender["new_last7days"][name]
+        cov_area.new_last7days = Bundeslaender["new_last7days"][name]
 
         # calculate last 7 days' incidence per 1 milllion population, 100,000 population
-        fed.incidence_sum7_1mio = fed.new_last7days / fed.population * 1000000
-        fed.incidence_sum7_100k = fed.new_last7days / fed.population * 100000
+        cov_area.incidence_sum7_1mio = cov_area.new_last7days / cov_area.population * 1000000
+        cov_area.incidence_sum7_100k = cov_area.new_last7days / cov_area.population * 100000
 
         # get HTML link of federal state
-        fed.link = bulaLink(name)
+        cov_area.link = bulaLink(name)
 
         # TODO: add data source's name, description, license, link
 
-        mangledData.feds[name] = fed
-    return fed
+        mangledData.feds[name] = cov_area
+    return cov_area
 
 
 
