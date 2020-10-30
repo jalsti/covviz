@@ -79,6 +79,12 @@ class DataMangled:
     haupt: pandas.DataFrame = None
     """data of the 'haupt' CSV data source, including source URLs"""
 
+    max_district_prevalence_100k: float = 0.0
+    """maximum prevalence value over all districts"""
+
+    max_federal_state_prevalence_100k: float = 0.0
+    """maximum prevalence value over all federal states"""
+
     feds: Dict = dict()
     """global dictionary to cache every `FedState`, which once has been gotten via `get_BuLa()`"""
 
@@ -88,7 +94,9 @@ class DataMangled:
     def __init__(self, ts: pandas.DataFrame = None, bnn: pandas.DataFrame = None,
                  ts_sorted: pandas.DataFrame = None, Bundeslaender_sorted: pandas.DataFrame = None,
                  dates: List[dt.datetime] = None, datacolumns: pandas.Index = None,
-                 haupt: pandas.DataFrame = None, feds: Dict = None, districts: Dict = None) -> None:
+                 haupt: pandas.DataFrame = None,
+                 max_district_prevalence_100k: float = 0.0,  max_federal_state_prevalence_100k: float = 0.0,
+                 feds: Dict = None, districts: Dict = None) -> None:
         """the parameters up to, including, `datacolumns` should not be changed in their order,
         as long as `dataMangled` initializes this directly through '*additional_column, …'"""
         self.ts = ts
@@ -98,8 +106,11 @@ class DataMangled:
         self.dates = dates if dates is not None else []
         self.datacolumns = datacolumns
         self.haupt = haupt
+        self.max_district_prevalence_100k = max_district_prevalence_100k
+        self.max_federal_state_prevalence_100k = max_federal_state_prevalence_100k
         self.feds = feds if feds is not None else dict()
         self.districts = districts if districts is not None else dict()
+
 
 class CovidDataArea:
     """structure to hold the base data fields which occur in btoh: District and FedState"""
@@ -120,22 +131,22 @@ class CovidDataArea:
     """file name where the plot/graphs get stored"""
 
     incidence_sum7_1mio: int = None
-    """incidence sum of the last 7 days of the instance's cases per million `population`"""
+    """incidence sum of the last 7 days of the area's cases per million `population`"""
 
     incidence_sum7_1ook: int = None
-    """incidence sum of the last 7 days of the instance's casesper 100,000 `population"""
+    """incidence sum of the last 7 days of the area's casesper 100,000 `population"""
 
     link: str =None
-    """HTML link for directly jumping to district"""
+    """HTML link for directly jumping to area"""
 
     incidence_sums: List[int] = None
     """list of 7 day incidence sums over all time, since 05.03.2020"""
 
     max_overall_prevalence_100k: float = None
-    """maximum prevalence value over all districts"""
+    """maximum prevalence value over all areas of this type"""
 
     name: str = None
-    """name of the district"""
+    """name of the area"""
 
     new_last7days: int = None
     """sum of new cases of last 7 days"""
@@ -150,19 +161,20 @@ class CovidDataArea:
     """prevalence for `cumulative` cases per 100,000 `population`"""
 
     title: str = None
-    """title of federal state, for e.g. plotting, including namen and population"""
+    """title of area, for e.g. plotting, including namen and population"""
 
     total: int = None
     """total cases over time (last entry of `cumulative`)"""
 
     reff_4_7: float = None
-    """reff_4_7 value of federal state, calculated by `Reff_4_7()`"""
+    """reff_4_7 value of area, calculated by `Reff_4_7()`"""
 
     rolling_mean7: pandas.DataFrame = None
-    """rolling mean of the last 7 days of the federal state's cases"""
+    """rolling mean of the last 7 days of the area's cases"""
 
     rolling_mean14: pandas.DataFrame = None
-    """rolling mean of the last 14 days of the federal state's cases"""
+    """rolling mean of the last 14 days of the area's cases"""
+
 
 class District(CovidDataArea):
     """structure to hold the pandemic data of a german district ('Kreis'), which may be a single city or a region of several small once"""
@@ -175,9 +187,8 @@ class District(CovidDataArea):
     type_name: str = None
     """'Bezeichnung', type of district"""
 
-
-    inf: int = None
-    """infections total of district from BNN"""
+    infections_bnn: int = None
+    """infections total of district from BNN""" # TODO: does it differ from `total` == `cumulative[-1]`?
 
     fed_states_infections: int = None # TODO: just link federal state, as soon as it has been converted into a container class
     """infections total of the federal state ('Bundesland') the district lays in"""
@@ -192,15 +203,8 @@ class District(CovidDataArea):
     """HTML links to the sources of the data"""
 
 
-max_district_prevalence_100k: float = 0.0
-"""maximum prevalence value over all districts"""
-
-max_federal_state_prevalence_100k: float = 0.0
-"""maximum prevalence value over all federal states"""
-
 mangledData = DataMangled
 """global object to store the mangled main data once"""
-
 
 def find_AGS(ts, name):
     cond = ts['ADMIN'].str.contains(name, na=False)
@@ -344,10 +348,10 @@ def get_Kreis(AGS):
         dstr.AGS = "%05i" % ags_int
 
         # set max prevalence over all districts
-        dstr.max_overall_prevalence_100k = max_district_prevalence_100k
+        dstr.max_overall_prevalence_100k = mangledData.max_district_prevalence_100k
 
          # get data and names and base data
-        dstr.name, dstr.type_name, dstr.inf, dstr.population = AGS_to_population(mangledData.bnn, AGS)
+        dstr.name, dstr.type_name, dstr.infections_bnn, dstr.population = AGS_to_population(mangledData.bnn, AGS)
         dstr.fed_states_name, dstr.fed_states_infections, dstr.fed_states__population = AGS_to_Bundesland(mangledData.bnn, AGS)
         dstr.daily = AGS_to_ts_daily(mangledData.ts, dstr.AGS)
         dstr.cumulative = AGS_to_ts_total(mangledData.ts, dstr.AGS)
@@ -412,6 +416,7 @@ def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
 
 def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
     global mangledData
+
     if name in mangledData.feds:
         fed = mangledData.feds[name]
     else:
@@ -419,7 +424,7 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
         fed.name = name
 
         # set max prevalence over all fed states
-        fed.max_overall_prevalence_100k = max_federal_state_prevalence_100k
+        fed.max_overall_prevalence_100k = mangledData.max_federal_state_prevalence_100k
 
         # get data and names
         fed.filename = "bundesland_" + name + ".png"
@@ -814,7 +819,7 @@ def dataMangled(withSynthetic=False, ifPrint=True, haupt=None, haupt_timestamp="
         * haupt_timestamp=="" means newest
 
     """
-    global mangledData, max_federal_state_prevalence_100k, max_district_prevalence_100k
+    global mangledData
     if mangledData.ts is not None:
         return mangledData
 
@@ -828,10 +833,9 @@ def dataMangled(withSynthetic=False, ifPrint=True, haupt=None, haupt_timestamp="
 
     max_date = mangledData.datacolumns[-1]
     data = mangledData.ts_sorted
-    max_district_prevalence_100k = max(data[max_date] / data['Population']) * 100000
+    mangledData.max_district_prevalence_100k = max(data[max_date] / data['Population']) * 100000
     data = mangledData.Bundeslaender_sorted
-    max_federal_state_prevalence_100k = max(data[max_date] / data['Population']) * 100000
-    # max_federal_state_prevalence_100k = max(bnn[bnn.columns[7]] / bnn[bnn.columns[9]]) * 100000
+    mangledData.max_federal_state_prevalence_100k = max(data[max_date] / data['Population']) * 100000
 
     return mangledData
 

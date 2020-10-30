@@ -113,14 +113,12 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
         ax.set_ylim(0, new_ticks[1] * (len(new_ticks)-1))
 
 
-#def plot_timeseries(dm: dataMangling.DataMangled, cov_area:Union[dataMangling.CovidDataArea], ifShow=True, ifCleanup=True, limitIncidencePerWeekPerMillion=500):
-
-def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.District, dataMangling.FedState], ifShow=True, ifCleanup=True):
+def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDataArea, ifShow=True, ifCleanup=True):
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
     dates = dm.dates
-    daily = plot_item.daily
-    isDistrict = type(plot_item) == dataMangling.District
+    daily = cov_area.daily
+    isDistrict = type(cov_area) == dataMangling.District
 
     # enlarger for y-limits of axis' tick ranges to not plot too close to top
     PLOT_YLIM_ENLARGER_DAILYS = 1.2  # if this is too low (e.g. 1.2), chances are good that some daily graphs go beyond the top, due to below manual changes to automatic ticks
@@ -141,7 +139,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     # ax for background gradient
     ax_bg: plt.Axes = ax.twinx()
     ax_bg.name = "background"
-    ax_bg.set_ylim(0, plot_item.cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS)
+    ax_bg.set_ylim(0, cov_area.cumulative[-1] * PLOT_YLIM_ENLARGER_DAILYS)
     ax_bg.grid(False)
     ax_bg.tick_params(axis='y', width=0)
     ax_bg.set_yticklabels([])
@@ -178,17 +176,17 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     #
     # plot background gradient, indicating relative prevalence
-    if not "Deutschland" in plot_item.filename:
+    if not "Deutschland" in cov_area.filename:
         # backgroud gradient indicating local max prevalence values compared with global
         mid = mp_dates.date2num(dates)[int(len(dates) / 2)]  # get middle point of the dates as plot start point
         # create some artificially plotting points, at the x-middle point of the dates, from zero up the y-axis' maximum
-        points = np.array([[mid] * len(dates), np.linspace(0, plot_item.total * PLOT_YLIM_ENLARGER_DAILYS, len(dates))]).T.reshape(-1, 1, 2)
+        points = np.array([[mid] * len(dates), np.linspace(0, cov_area.total * PLOT_YLIM_ENLARGER_DAILYS, len(dates))]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1) # create lines from neighbour to neighbour of elements in 'points'
         # set proportion for colors, matching plot item's own 100k prevalence
-        proportion = np.linspace(0, plot_item.prevalence_100k * PLOT_YLIM_ENLARGER_DAILYS, len(dates))
+        proportion = np.linspace(0, cov_area.prevalence_100k * PLOT_YLIM_ENLARGER_DAILYS, len(dates))
         # set norm to match global max, shooting the colors over the plot item's max, if it is not the global prevalence max itself
         #   this norm together with the max of 'proportion' is basically the core, to indicate the relative prevalence
-        norm = plt.Normalize(0, plot_item.max_overall_prevalence_100k)
+        norm = plt.Normalize(0, cov_area.max_overall_prevalence_100k)
         cmap = 'YlOrRd' if isDistrict else 'Reds'
         lc = LineCollection(segments, cmap=cmap, norm=norm, alpha=0.4)
         lc.set_array(proportion)
@@ -218,10 +216,10 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     #
     # plot cumulative cases data for the 2nd y axis
-    ax_cumu.plot(dates, plot_item.cumulative, color='w', linewidth=7, alpha=0.1) # plot white background for next line
-    lns5 = ax_cumu.plot(dates, plot_item.cumulative, label="total cases reported at RiskLayer", color='#50C0FF', linestyle='dotted', linewidth=2)
+    ax_cumu.plot(dates, cov_area.cumulative, color='w', linewidth=7, alpha=0.1) # plot white background for next line
+    lns5 = ax_cumu.plot(dates, cov_area.cumulative, label="total cases reported at RiskLayer", color='#50C0FF', linestyle='dotted', linewidth=2)
 
-    ax_cumu.set_ylim(0, max(plot_item.cumulative) * PLOT_YLIM_ENLARGER_CUMU)
+    ax_cumu.set_ylim(0, max(cov_area.cumulative) * PLOT_YLIM_ENLARGER_CUMU)
     ax_cumu.set_ylabel("cumulative total cases")
     ax_cumu.yaxis.label.set_color(color=lns5[0].get_color())
     ax_cumu.tick_params(axis='y', colors=lns5[0].get_color())
@@ -230,11 +228,11 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     # plot rolling average
     # rolling averages for daily cases, over two weeks
     if not isDistrict:
-        ax.plot(dates, plot_item.rolling_mean14, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
-        lns3 = ax.plot(dates, plot_item.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=2)
+        ax.plot(dates, cov_area.rolling_mean14, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
+        lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=2)
     else:
-        rmean_data = plot_item.rolling_mean14[0]
-        lns3 = ax.plot(dates, plot_item.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=0)
+        rmean_data = cov_area.rolling_mean14[0]
+        lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=0)
         ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % 14,
                                  color=lns3[0].get_color(), linewidth=0, zorder=0)
 
@@ -267,10 +265,10 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
         # incidences graph plotting
         label = 'sum of daily cases, for prior %s days of date' % 7
         # plot yellow background for sum graph, then graph over it
-        ax_sum.plot(dates, plot_item.incidence_sums, label=label, color='yellow', linewidth=7, alpha=0.4)
-        lns0 = ax_sum.plot(dates, plot_item.incidence_sums, label=label, color=COLOR_INCID_SUMS)
+        ax_sum.plot(dates, cov_area.incidence_sums, label=label, color='yellow', linewidth=7, alpha=0.4)
+        lns0 = ax_sum.plot(dates, cov_area.incidence_sums, label=label, color=COLOR_INCID_SUMS)
         # set axis properties
-        incidence_max = max(plot_item.incidence_sums)
+        incidence_max = max(cov_area.incidence_sums)
         ax_sum.set_ylim(0, incidence_max * PLOT_YLIM_ENLARGER_DAILYS)
         # also yellow background for label
         ax_sum.set_ylabel(label + "\n(to determine incidence borders)", color=COLOR_INCID_SUMS,
@@ -291,14 +289,14 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
         # plot incidence border lines
-        limit = weeklyIncidenceLimit1Per100k * plot_item.population / 100000
+        limit = weeklyIncidenceLimit1Per100k * cov_area.population / 100000
         lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
                              label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c',
                              linestyle=(0, (3, 5)))
 
         # plot second incidence border only if first one is nearly reached, to have no unneeded large y1 numbers which would worsen the view
         if incidence_max > limit * 0.8:
-            limit = weeklyIncidenceLimit2Per100k * plot_item.population / 100000
+            limit = weeklyIncidenceLimit2Per100k * cov_area.population / 100000
             lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
                                  label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
@@ -316,8 +314,8 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     if not isDistrict:
         #
         #  plot rolling averages for daily cases, over a wekk, if not a Kreis
-        ax.plot(dates, plot_item.rolling_mean7, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
-        lns6_1 = ax.plot(dates, plot_item.rolling_mean7, label="centered moving average, %s days cases" % 7, color='#900090', zorder=3)
+        ax.plot(dates, cov_area.rolling_mean7, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
+        lns6_1 = ax.plot(dates, cov_area.rolling_mean7, label="centered moving average, %s days cases" % 7, color='#900090', zorder=3)
 
         ax.grid(True, which='major', axis='y', ls='-', alpha=0.9)  # if not set here above, ticks of left side y axis won't be visible
         ax.grid(True, which='minor', axis='y', ls='--', alpha=0.7)
@@ -333,8 +331,8 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     # the '1.3'-multiplier below, for setting the y-position of the marker, is a none-deterministic evaluated value which lets the
     #   triangle marker's bottom point be placed nearly at the x-axis, for all of the 16 Bundeslaender with their different case numbers
     marker_y = yminor * 1.3 if yminor > 1 else 0.8
-    center = plot_item.center
-    center_date = plot_item.center_date
+    center = cov_area.center
+    center_date = cov_area.center_date
     # (first a dummy marker just for later showing in legend with smaller symbol, gets plotted over with 2nd one)
     lns4_1 = ax_for_marker.plot(dates[int(round(center))], [marker_y], marker="v", color='green', markersize=8, label="marker for 'expectation day': " + center_date,
                                 linestyle="")
@@ -354,7 +352,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
 
     # plot legend on top axis, and title
     ax_for_marker.legend(lines, labs, loc='upper left', facecolor="#fafafa", framealpha=0.7, title=text, prop={'size': 8}, title_fontsize=8)
-    plt.title(plot_item.title)
+    plt.title(cov_area.title)
 
     # set x axis major ticks to month starts
     ax.xaxis.set_major_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 32, 31)))  # if placing this setting above all other, major ticks won't appear
@@ -366,8 +364,8 @@ def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.D
     else:
         equalize_axes_ticks(base_ax=ax, adjust_axs=[ax_cumu])
 
-    if plot_item.filename:
-        fig.savefig(os.path.join(dataFiles.PICS_PATH, plot_item.filename), bbox_inches='tight')
+    if cov_area.filename:
+        fig.savefig(os.path.join(dataFiles.PICS_PATH, cov_area.filename), bbox_inches='tight')
 
     if ifShow:
         if plt.get_backend() in  matplotlib.rcsetup.interactive_bk:# ['qt5agg', 'tkagg']:
@@ -388,15 +386,13 @@ def test_plot_Kreis(dm):
     #AGS = "1001"
     AGS = "5711"
     # AGS = "9377"
-    dstr = dataMangling.get_Kreis(dm, AGS)
-    plot_timeseries(dm, dstr)
 
     plot_Kreise(dm, [AGS], ifPrint=False, ifShow=True, ifCleanup=False)
 
 def plot_Kreise(dm, Kreise_AGS, ifPrint=True, ifShow=False, ifCleanup=True):
     done = []
     for AGS in Kreise_AGS:
-        dstr = dataMangling.get_Kreis(dm, AGS)
+        dstr = dataMangling.get_Kreis(AGS)
         plot_timeseries(dm, dstr, ifShow=ifShow, ifCleanup=ifCleanup)
         done.append((dstr.title, dstr.filename))
         if ifPrint:

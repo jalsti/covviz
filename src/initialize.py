@@ -40,5 +40,5 @@ if __name__ == '__main__':
     # do_it(a=False, d=False)
     daily.daily_update(regenerate_pages_regardless_if_new_data=True, regenerate_plots_regardless_if_new_data=True,
                  publish=False, showExtremes=True, withSyntheticData=False, downloadNewData=False)
-   
+
     print ("\nREADY.")

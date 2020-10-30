@@ -50,9 +50,6 @@ def toHTMLRow(frame, row_index, datacolumns, cmap, labels, rolling_window_size=7
         
         line+='<td bgcolor="%s"><span>%d</span></td> ' % (rgb, c)
         
-    for label in labels:
-        line+="<td>%s</td>" % label
-        
     return line + "</tr>"
     
 

@@ -145,7 +145,7 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
     wp=dataFiles.load_wikipedia_landkreise_table()
 
     for AGS in district_AGSs:
-        dstr = dataMangling.get_Kreis(AGS)
+        dstr: dataMangling.District = dataMangling.get_Kreis(AGS)
 
         try:
             nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(dm.bnn, distances, AGS, km) if AGS else ""
@@ -159,11 +159,11 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
 
         # add choices link of country, Bundesland, AGS and neighbors with JS (as work with JS only)
         locs = "Deutschland,"
-        if dstr.gen != fed.name:  # add Bundesland if not same as city
+        if dstr.name != fed.name:  # add Bundesland if not same as city
             locs += f"{fed.name},"
-        locs += f"{AGS}, {nearby_AGS}"
+        locs += f"{AGS},{nearby_AGS}"
         cols = 3 # if nearby_AGS.count(',') < 12 else 4
-        page += CHOICES_ITEMS_JS_STUB.format(choice_id=f"{anchor}_choice", locs=locs, cols=cols, title=f"covviz plots of {dstr.gen} and neighbours within {km}km",
+        page += CHOICES_ITEMS_JS_STUB.format(choice_id=f"{anchor}_choice", locs=locs, cols=cols, title=f"covviz plots of {dstr.name} and neighbours within {km}km",
                                              linktext="Open all plots of these neighbours in a new window.")
 
         filename_kreis_PNG = "Kreis_" + ("00000"+str(AGS))[-5:] + ".png"
@@ -208,7 +208,7 @@ def Bundeslaender_alle(dm: dataMangling.DataMangled, distances, cmap, km):
         if BL_name == "Deutschland":
             continue
         print (BL_name, end=" ")
-        fed = dataMangling.get_BuLa(Bundeslaender, BL_name, dm.datacolumns)
+        fed: dataMangling.CovidDataArea = dataMangling.get_BuLa(Bundeslaender, BL_name, dm.datacolumns)
         filename_HTML = fed.filename.replace(".png", ".html")
         filename_HTML = filename_HTML.replace("bundesland_", "")
 
@@ -316,7 +316,7 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
     
     prevalence = cumulative[-1] / DE["Population"] * 100000.0
     page += "population: {:,}".format(DE["Population"])
-    page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/>\n".format(prevalence_100k)
+    page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/>\n".format(prevalence)
     
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
 
