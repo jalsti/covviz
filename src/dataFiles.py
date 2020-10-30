@@ -462,7 +462,7 @@ def add_synthetic_data(ts, bnn, flatUntil = 14, steps=[10, 20, 50, 100, 130, 140
 
     return ts, bnn
 
-def data(withSynthetic=True, ifPrint=True):
+def data(withSynthetic=False, ifPrint=True):
     """
     load data, show attribution, repair data, possibly add synthetic district
     returns (time series, population-in-district table)
