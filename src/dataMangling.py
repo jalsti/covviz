@@ -297,6 +297,7 @@ def bulaLink(name):
 
 
 def sources_links(haupt, AGS):
+    AGS = int(AGS)
     if AGS not in haupt.index:
         return None
 

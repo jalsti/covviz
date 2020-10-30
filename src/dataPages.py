@@ -554,7 +554,7 @@ def generate_hotspot_files():
 
 if __name__ == '__main__':
     
-    generate_hotspot_files(); exit()
+    # generate_hotspot_files(); exit()
     
     # test_search_URLs(); exit()
     
