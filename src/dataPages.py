@@ -15,11 +15,6 @@
 
 
 import os, datetime, math
-
-import pandas
-import numpy
-from matplotlib import pyplot as plt
-import matplotlib 
 import urllib.parse
 
 import dataFiles, dataMangling, dataPlotting, districtDistances, dataTable
@@ -112,8 +107,7 @@ def wikipedia_link(wp, AGS, base_url=dataFiles.WP_URL):
 
 def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap, km):
     page = dataTable.PAGE % fed.name
-
-    district_AGSs = dm.ts_sorted[dm.ts_sorted.Bundesland==fed.name].drop(["Dummykreis"], errors='ignore').index.tolist()
+    district_AGSs = dm.ts_sorted[dm.ts_sorted.Bundesland==fed.name].index.tolist()
     
     page +='<a name="top">'
     page +='Up to <a href="about.html">about.html</a> or to overview of <a href="Deutschland.html">Germany</a>\n'
@@ -151,7 +145,7 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
     wp=dataFiles.load_wikipedia_landkreise_table()
 
     for AGS in district_AGSs:
-        dstr = dataMangling.get_Kreis(dm, AGS)
+        dstr = dataMangling.get_Kreis(AGS)
 
         try:
             nearby_links, nearby_AGS = districtDistances.kreis_nearby_links(dm.bnn, distances, AGS, km) if AGS else ""
@@ -167,7 +161,7 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
         locs = "Deutschland,"
         if dstr.gen != fed.name:  # add Bundesland if not same as city
             locs += f"{fed.name},"
-        locs += f"{AGS},{nearby_AGS}"
+        locs += f"{AGS}, {nearby_AGS}"
         cols = 3 # if nearby_AGS.count(',') < 12 else 4
         page += CHOICES_ITEMS_JS_STUB.format(choice_id=f"{anchor}_choice", locs=locs, cols=cols, title=f"covviz plots of {dstr.gen} and neighbours within {km}km",
                                              linktext="Open all plots of these neighbours in a new window.")
@@ -176,7 +170,7 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
 
         page +='<img src="%s"/><p/>' % ("../pics/" + dstr.filename)
         
-        page += ("%s %s" % (dstr.bez, dstr.gen)) + " population: {:,}".format(dstr.population)
+        page += ("%s %s" % (dstr.type_name, dstr.name)) + " population: {:,}".format(dstr.population)
         page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/> ".format(dstr.prevalence_100k)
         page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
                 "relative to all other {plural}; e.g. the less colourful the gradient is, " \
@@ -189,7 +183,7 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
         if wpl: 
             page +=', %s' % (wpl)
         else:
-            kreis = kreissitz = dstr.gen # we have that wikipedia info about kreissitz only for 294 out of 401, for remainder fall back to kreis name
+            kreis = kreissitz = dstr.name # we have that wikipedia info about kreissitz only for 294 out of 401, for remainder fall back to kreis name
         page += ", " + search_URLs(kreis, kreissitz)
         page +='<br/>total cases: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % dstr.cumulative
         page +='<br/>incidence sums: <span style="color:#1E90FF; font-size:xx-small;">%s</span>\n' % dstr.incidence_sums
@@ -322,7 +316,7 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
     
     prevalence = cumulative[-1] / DE["Population"] * 100000.0
     page += "population: {:,}".format(DE["Population"])
-    page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/>\n".format(prevalence)
+    page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/>\n".format(prevalence_100k)
     
     page +='total cases: <span style="color:#1E90FF; font-size:x-small;">%s</span><p/>\n' % (list(map(int, cumulative)))
 

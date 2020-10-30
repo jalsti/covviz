@@ -229,7 +229,7 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
     page +="</tr>"
     
     for AGS in district_AGSs:
-        dstr = dataMangling.get_Kreis(dm, AGS)
+        dstr = dataMangling.get_Kreis(AGS)
         # print (AGS)
         # nearby_links = districtDistances.kreis_nearby_links(bnn, distances, AGS, km) if AGS else ""
         labels=[]
@@ -245,8 +245,8 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
         labels += ['{:,}'.format(dstr.population)]
         labels += ["%.1f" % dstr.center]
         labels += ["%.2f" % dstr.reff_4_7]
-        labels += [bulaLink(dstr.name_BL)]
-        labels += [flag_image(dstr.name_BL, dstr.pop_BL)]
+        labels += [bulaLink(dstr.fed_states_name)]
+        labels += [flag_image(dstr.fed_states_name, dstr.fed_states__population)]
         # labels += [nearby_links]
         page += toHTMLRow(dm.ts_sorted, int(AGS), dm.datacolumns, cmap, labels, rolling_window_size=rolling_window_size) + "\n"
         

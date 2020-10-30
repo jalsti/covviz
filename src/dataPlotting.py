@@ -2,7 +2,7 @@
 """
 @summary: plot timeseries of (cumulative, daily) number of confirmed cases
 
-@version: v03.6.6 (03/Oct/2020)
+@version: v03.7
 @since:   25/April/2020
 
 @author:  Dr Andreas Krueger
@@ -113,6 +113,7 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
         ax.set_ylim(0, new_ticks[1] * (len(new_ticks)-1))
 
 
+#def plot_timeseries(dm: dataMangling.DataMangled, cov_area:Union[dataMangling.CovidDataArea], ifShow=True, ifCleanup=True, limitIncidencePerWeekPerMillion=500):
 
 def plot_timeseries(dm: dataMangling.DataMangled, plot_item:Union[dataMangling.District, dataMangling.FedState], ifShow=True, ifCleanup=True):
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
