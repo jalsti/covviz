@@ -77,6 +77,7 @@ PAGE="""
 # FIXME: that JS table sorting seems to be a bubble sort with directly manipulating the existing huge DOM on each switch.
 #  (Maybe we should insert some timeouts on each switch step, as the only thinkable possibility to get it even slower. ;-))
 PAGE_END="""
+<script type="text/javascript" src="sort-table.js"></script>
 <script type="text/javascript">
 //<!--
 function expand_table_div(tablediv_id){
@@ -140,7 +141,7 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
         ("Expec&shy;ta&shy;tion day", True),
         ("Reff_4_7", True),
         ("Federal state (Bundes&shy;land)", True),
-        ("Flag", False),
+        ("Fed. state flag", False),
         ]
 
     for i, col in enumerate(cols):
@@ -214,9 +215,9 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
     dc_head.reverse()
 
     cols = [
+        "Fed. state flag",
         "Federal state (Bundes&shy;land)",
         "7days new cases",
-        "Flag",
         "Prev. p.1mio",
         "7days Incid. p.1mio",
         "Popu&shy;la&shy;tion",
@@ -240,9 +241,9 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
     for name_BL in BL_names:
         labels=[]
         fed = dataMangling.get_BuLa(Bundeslaender, name_BL, dm.datacolumns)
+        labels += [flag_image(name_BL)]
         labels += [fed.link]
         labels += ['%d' % fed.new_last7days]
-        labels += [flag_image(name_BL)]
         labels += ["%d" % fed.prevalence_1mio]
         labels += ['%d' % fed.incidence_sum7_1mio]
         labels += ['{:,}'.format(fed.population)]

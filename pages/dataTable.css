@@ -34,7 +34,7 @@ th, td {
     vertical-align: middle;
 }
 
-td {
+td, .sticky-left {
     max-width: 130px;
     overflow: hidden;
     text-overflow: ellipsis;
