@@ -71,11 +71,12 @@ th span {
 .tableFixHead th {
     background-color: white;
     border-top-width: 2px;
-    box-shadow: 3px 2px 5px 1px rgba(0, 0, 0, 0.5);
+    box-shadow: 3px 1px 6px 1px rgba(0, 0, 0, 0.5);
     padding: 3px;
     position: sticky;
     top: -1px;
 }
+
 
 .sticky-left {
     background: white;
@@ -85,5 +86,17 @@ th span {
     position: sticky;
     text-align: left;
     white-space: nowrap;
+    z-index: 50;
+}
+
+
+.tableFixHead th.sticky-left {
+    box-shadow: 0px 2px 5px 1px rgba(0, 0, 0, 0.5);
+    left: -1px;
+    overflow: auto;
+    position: sticky;
+    text-overflow: unset;
+    top: -1px;
+    white-space: normal;
     z-index: 99;
 }

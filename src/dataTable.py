@@ -63,7 +63,7 @@ PAGE="""
 <TITLE>%s</TITLE>
 <link rel="stylesheet" href="dataTable.css"
 <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed|Teko&display=swap" rel="stylesheet">
-
+<script type="text/javascript" src="sort-table.js"></script>
 </head>
 <body>
 """
@@ -77,7 +77,6 @@ PAGE="""
 # FIXME: that JS table sorting seems to be a bubble sort with directly manipulating the existing huge DOM on each switch.
 #  (Maybe we should insert some timeouts on each switch step, as the only thinkable possibility to get it even slower. ;-))
 PAGE_END="""
-<script type="text/javascript" src="sort-table.js"></script>
 <script type="text/javascript">
 //<!--
 function expand_table_div(tablediv_id){
@@ -229,7 +228,7 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
         if i > 0:
             page += '<th '
         else:
-            page += '<th class="sticky-left" '
+            page += '<th class="sticky-left" style="max-width:50px;"'
         cellid = "\'%shc%d\'" % (tid, i)
         page += 'onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
 
