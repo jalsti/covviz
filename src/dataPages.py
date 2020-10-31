@@ -274,18 +274,13 @@ Perhaps remember the --&gt; shortcut to
 that googlesheet --&gt; <a href="http://tiny.cc/kreise">tiny.cc/kreise</a><p/>
 
 (Screenshot below is not updated, so:) Click on the image to see a more recent <b>mortality sorting</b>.<p/> 
-<table border="0" cellspacing="2" cellpadding="2">
-<tbody>
-<tr>
-<td>
+<div>
 <a href="https://docs.google.com/spreadsheets/d/1KbNjq2OPsSRzmyDDidbXD4pcPnAPfY0SsS693duadLw/#gid=1644486167">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <img src="../pics/googlesheet-mortality-top-20200430.png"
      alt="table of Kreise sorted by mortality" border="0" width="100%" />
 </a><br>
-</td></tr>
-</tbody>
-</table>
+</div>
 <br>
 """
 # width="583" height="320"

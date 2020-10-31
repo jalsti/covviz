@@ -41,7 +41,8 @@ def toHTMLRow(frame, row_index, datacolumns, cmap, labels, rolling_window_size=7
     cumulative=row.tolist()
     line="<tr>"
 
-    for label in labels:
+    line+='<td class="sticky-left">%s</td>' % labels[0]
+    for label in labels[1:]:
         line+="<td>%s</td>" % label
 
     for c, d in zip(cumulative, diff_rolling_mean):
@@ -60,87 +61,7 @@ PAGE="""
 <html lang="en">
 <head>
 <TITLE>%s</TITLE>
-<STYLE>
-
-table {
-  border-collapse: collapse;
-}
-
-body {
-  font-family: 'Roboto', sans-serif;
-}
-
-
-th, td {
-  text-align:center;
-  font-family: 'Roboto Condensed', sans-serif;
-  vertical-align: middle;
-  text-align: center;
-  border: 1px solid black;
-  min-width: 18px;
-}
-
-td span
-{
-  font-family: 'Teko', sans-serif;
-  text-align:center;
-}
-
-th span
-{
-  -ms-writing-mode: tb-rl;
-  -webkit-writing-mode: vertical-rl;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  white-space: nowrap;
-  font-family: sans-serif;
-}
-
-.flag 
-{
-    border:1px solid #777777;
-}
-
-.tablearea {
-    overflow-y: scroll;
-    overflow-x: scroll;
-    width: 100%%;
-    max-height: 670px;
-    display: inline-block;
-}
-
-.bloverview {
-    display: flex;
-    justify-content: space-evenly;
-    flex-wrap: wrap;
-}
-
-.bloverview figcaption{
-    text-align: center;
-}
-
-.bloverview figure{
-    display: inline-block;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-}
-
-.bloverview img{
-    width: 300px; /* should allow 4 images in a row on 1280 screen resolution */
-}
-
-// fix header row:
-.tableFixHead          { overflow-y: auto; height: 100px; }
-.tableFixHead th { position: sticky; top: 0; background-color: white; }
-
-// fix borders:
-// .tableFixHead,.tableFixHead td {   box-shadow: inset 1px -1px #000; }
-      
-.tableFixHead th {  box-shadow: inset 1px 1px #000, 0 1px #000; }
-
-      
-
-</STYLE>
+<link rel="stylesheet" href="dataTable.css"
 <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed|Teko&display=swap" rel="stylesheet">
 
 </head>
@@ -156,7 +77,19 @@ th span
 # FIXME: that JS table sorting seems to be a bubble sort with directly manipulating the existing huge DOM on each switch.
 #  (Maybe we should insert some timeouts on each switch step, as the only thinkable possibility to get it even slower. ;-))
 PAGE_END="""
-<script type="text/javascript" src="sort-table.js"></script>
+<script type="text/javascript">
+//<!--
+function expand_table_div(tablediv_id){
+	console.log("expand");
+	var element = document.getElementById(tablediv_id);
+	if (element.style["max-height"]!='none'){
+		element.style["max-height"]='none';
+	} else {
+		element.style.removeProperty("max-height");
+	}
+}
+//-->
+</script>
 </body>
 </html>
 """
@@ -196,25 +129,31 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
 
     colcount=len(dm.datacolumns)
     # print (datacolumns, colcount); exit()
-    cols = [("total cases", True),
-            ("7days new cases", True),
-            ("Kreis", True),
-            ("Prev. p.1mio", True),
-            ("7days Incid.p.1mio", True),
-            # ("7days Incid.p.1mio", True),
-            ("Population", True),
-            ("expectation day", True),
-            ("Reff_4_7", True),
-            ("Bundesland", True),
-            ("info", False) ] 
+    cols = [
+        ("District (Kreis)", True),
+        ("Total cases", True),
+        ("7days new cases", True),
+        ("Prev. p.1mio", True),
+        ("7days Incid. p.1mio", True),
+        # ("7days Incid.p.1mio", True),
+        ("Popu&shy;la&shy;tion", True),
+        ("Expec&shy;ta&shy;tion day", True),
+        ("Reff_4_7", True),
+        ("Federal state (Bundes&shy;land)", True),
+        ("Flag", False),
+        ]
 
     for i, col in enumerate(cols):
         colName, sorting = col
+        if i > 0:
+            page += '<th '
+        else:
+            page += '<th class="sticky-left" '
         if sorting:
             cellid = "\'%shc%d\'" % (tid, i)
-            page += '<th onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
+            page += 'onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
         else:
-            page += '<th>%s</th>' % (colName)
+            page += '>%s</th>' % (colName)
 
     for col in dc_head:
         page += "<th><span>%s</span></th>" % col
@@ -229,10 +168,9 @@ def Districts_to_HTML_table(dm, district_AGSs, cmap, filename="kreise_Germany.ht
         
         # Add the last data column once more, so that table is sortable by that column:
         totalCases = dstr.total
-        labels += ['%d' % totalCases]
-        
-        labels += ['%d' % dstr.new_last7days]
         labels += [dstr.link]
+        labels += ['%d' % totalCases]
+        labels += ['%d' % dstr.new_last7days]
         labels += ["%d" % dstr.prevalence_1mio]
         labels += ['%d' % dstr.incidence_sum7_1mio]
         labels += ['{:,}'.format(dstr.population)]
@@ -275,11 +213,24 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
     dc_head = dm.datacolumns.tolist()
     dc_head.reverse()
 
-    cols = ["7days new cases", "Bundesland", "info", "Prev. p.1mio", "7days Incid.p.1mio", "Population", "expectation day", "Reff_4_7" ]
+    cols = [
+        "Federal state (Bundes&shy;land)",
+        "7days new cases",
+        "Flag",
+        "Prev. p.1mio",
+        "7days Incid. p.1mio",
+        "Popu&shy;la&shy;tion",
+        "Expec&shy;ta&shy;tion day",
+        "Reff_4_7",
+    ]
 
     for i, colName in enumerate(cols):
+        if i > 0:
+            page += '<th '
+        else:
+            page += '<th class="sticky-left" '
         cellid = "\'%shc%d\'" % (tid, i)
-        page += '<th onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
+        page += 'onclick="sortTable(\'%s\', %d, %s)" id=%s>%s</th>' % (tid, i, cellid, cellid, colName)
 
     for col in dc_head:
         page += "<th><span>%s</span></th>" % col
@@ -289,8 +240,8 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
     for name_BL in BL_names:
         labels=[]
         fed = dataMangling.get_BuLa(Bundeslaender, name_BL, dm.datacolumns)
-        labels += ['%d' % fed.new_last7days]
         labels += [fed.link]
+        labels += ['%d' % fed.new_last7days]
         labels += [flag_image(name_BL)]
         labels += ["%d" % fed.prevalence_1mio]
         labels += ['%d' % fed.incidence_sum7_1mio]
@@ -312,21 +263,20 @@ def BuLas_to_HTML_table(dm: dataMangling.DataMangled, cmap, table_filename="bund
 
     return fn, page
 
-def plot_values_to_HTML_table(labels: [str], data_rows: [], date_columns: [], caption: str = 'Plot values for dates'):
+def plot_values_to_HTML_table(labels: [str], data_rows: [], date_columns: [], caption: str = 'Values for dates'):
     """create a simple html table"""
     table = ""
-    table += '<div class="tablearea">\n<table class="tableFixHead">\n'
-    table += '<caption">%s</caption>\n' % caption
+    table += '<div class="tablearea">\n<table>\n'
 
     table += "<tr>"
-    table += "<th>&nbsp;</th>"
+    table += '<th class="sticky-left">%s</th>' % caption
     for col in date_columns:
-        table += "<th><span>%s&nbsp;</span></th>" % col[:6]
+        table += "<th>%s</th>" % col[:6]
     table +="</tr>"
 
     for i, label in enumerate(labels):
         table += "<tr>"
-        table += "<td>%s</td>" % label
+        table += '<td class="sticky-left">%s</td>' % label
         for col in data_rows[i]:
             val = "{:.2f}".format(col) if type(col) == float else str(col)
             table += "<td>%s</td>" % val

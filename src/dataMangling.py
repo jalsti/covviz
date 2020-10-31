@@ -293,7 +293,7 @@ def AGS_to_Bundesland(bnn, AGS):
 
 
 def bulaLink(name):
-    return '<a href="%s.html">%s</a>' % (name, name)
+    return '<a title="{name}" href="{name}.html">{name}</a>'.format(name=name)
 
 
 def sources_links(haupt, AGS):
