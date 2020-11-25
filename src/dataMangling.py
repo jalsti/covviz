@@ -26,6 +26,10 @@ import dataFiles
 import districtDistances
 
 
+WEEKLY_INCIDENCE_LIMIT1_PER_100K = 35
+WEEKLY_INCIDENCE_LIMIT2_PER_100K = 50
+WEEKLY_INCIDENCE_LIMIT3_PER_100K = 200
+
 class DataMangled:
     """structure to hold the mangled overall covid data, gathered by `dataMangled()`"""
     ts: pandas.DataFrame = None
@@ -204,6 +208,15 @@ class District(CovidDataArea):
 
     sources: str = None
     """HTML links to the sources of the data"""
+
+    weeklyIncidenceLimit1Per100k: float = None
+    """weekly 7 day incidence border #1 (35) """
+
+    weeklyIncidenceLimit2Per100k: float = None
+    """weekly 7 day incidence border #2 (50) """
+
+    weeklyIncidenceLimit3Per100k: float = None
+    """weekly 7 day incidence border #3 (200) """
 
 
 mangledData = DataMangled
@@ -387,6 +400,12 @@ def get_Kreis(AGS):
         # calculate last 7 days' incidence per 1 million population, 100,000 population
         cov_area.incidence_sum7_1mio = cov_area.new_last7days / cov_area.population * 1000000
         cov_area.incidence_sum7_100k = cov_area.new_last7days / cov_area.population * 100000
+
+        # 7 day incidence borders
+        cov_area.weeklyIncidenceLimit1Per100k = WEEKLY_INCIDENCE_LIMIT1_PER_100K * cov_area.population / 100000
+        cov_area.weeklyIncidenceLimit2Per100k = WEEKLY_INCIDENCE_LIMIT2_PER_100K * cov_area.population / 100000
+        cov_area.weeklyIncidenceLimit3Per100k = WEEKLY_INCIDENCE_LIMIT3_PER_100K * cov_area.population / 100000
+
 
         # get HTML links of district and data sources
         cov_area.link = districtDistances.kreis_link(mangledData.bnn, AGS)[2]

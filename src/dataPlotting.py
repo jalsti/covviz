@@ -34,10 +34,6 @@ from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 import dataFiles
 import dataMangling
 
-weeklyIncidenceLimit1Per100k = 35
-weeklyIncidenceLimit2Per100k = 50
-weeklyIncidenceLimit3Per100k = 200
-
 def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: int = 5):
     """tries to ensure that the major ticks of all given axis are on the same plot y-position
         :param base_ax: the axis which is taken as base for adjusting the other axis' major ticks.
@@ -290,24 +286,25 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
         # plot incidence border lines
-        limit = weeklyIncidenceLimit1Per100k * cov_area.population / 100000
+        limit = cov_area.weeklyIncidenceLimit1Per100k
         lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                             label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c',
+                             label="incid. border %i/week/100k pop.: %.2f" % (cov_area.weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c',
                              linestyle=(0, (3, 5)))
 
-        # plot second incidence border only if first one is nearly reached, to have no unneeded large y1 numbers which would worsen the view
-        inc = weeklyIncidenceLimit2Per100k * cov_area.population / 100000
+        # plot second incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
+        inc = cov_area.weeklyIncidenceLimit2Per100k
         if incidence_max > inc * 0.8:
             limit = inc
             lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                                 label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
+                                 label="incid. border %i/week/100k pop.: %.2f" % (cov_area.weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
 
-        inc = weeklyIncidenceLimit3Per100k * cov_area.population / 100000
+        # plot 3rd incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
+        inc = cov_area.weeklyIncidenceLimit3Per100k
         if incidence_max > inc * 0.8:
             limit = inc
             lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                                 label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit3Per100k, limit), color='#d03c3c',
+                                 label="incid. border %i/week/100k pop.: %.2f" % (cov_area.weeklyIncidenceLimit3Per100k, limit), color='#d03c3c',
                                  linestyle=(0, (6, 2)))
 
         ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
