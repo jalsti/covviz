@@ -36,6 +36,7 @@ import dataMangling
 
 weeklyIncidenceLimit1Per100k = 35
 weeklyIncidenceLimit2Per100k = 50
+weeklyIncidenceLimit3Per100k = 200
 
 def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: int = 5):
     """tries to ensure that the major ticks of all given axis are on the same plot y-position
@@ -126,7 +127,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     # plotting color for 7-daily sums graph
     COLOR_INCID_SUMS = '#2020D0'
 
-    lns0, lns1, lns1_0, lns3, lns3_0, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2 = [], [], [], [], [], [], [], [], [], [], []
+    lns0, lns1, lns1_0, lns3, lns3_0, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2, lns6_3 = [], [], [], [], [], [], [], [], [], [], [], []
 
     ax: plt.Axes # type hint for better IDE auto-completion
     fig, ax = plt.subplots(figsize=(10, 6))  # , constrained_layout=True)
@@ -295,12 +296,22 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
                              linestyle=(0, (3, 5)))
 
         # plot second incidence border only if first one is nearly reached, to have no unneeded large y1 numbers which would worsen the view
-        if incidence_max > limit * 0.8:
-            limit = weeklyIncidenceLimit2Per100k * cov_area.population / 100000
+        inc = weeklyIncidenceLimit2Per100k * cov_area.population / 100000
+        if incidence_max > inc * 0.8:
+            limit = inc
             lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
                                  label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
+
+        inc = weeklyIncidenceLimit3Per100k * cov_area.population / 100000
+        if incidence_max > inc * 0.8:
+            limit = inc
+            lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
+                                 label="incid. border %i/week/100k pop.: %.2f" % (weeklyIncidenceLimit3Per100k, limit), color='#d03c3c',
+                                 linestyle=(0, (6, 2)))
+
         ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
+
 
         # set new ax limit for daily cases / averaging, trying to have evenly distributed major ticks for both y axes
         #   this will work in many cases, but still some work would be todo to get all left/right major ticks in same grid
@@ -342,7 +353,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     #
     # build legend
     # collect lines which shall get a label in legend
-    lines = lns4_1 + lns5 + lns1 + lns3 + lns0 + lns6_2 + lns6_1
+    lines = lns4_1 + lns5 + lns1 + lns3 + lns0 + lns6_3 + lns6_2 + lns6_1
     labs = [l.get_label() for l in lines]
 
     # text for legend
