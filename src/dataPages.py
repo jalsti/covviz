@@ -178,7 +178,11 @@ def bundesland(fed, filename_HTML, dm: dataMangling.DataMangled, distances, cmap
         page +='<img src="%s"/><p/>' % ("../pics/" + dstr.filename)
         
         page += ("%s %s" % (dstr.type_name, dstr.name)) + " population: {:,}".format(dstr.population)
-        page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time).<br/> ".format(dstr.prevalence_100k)
+        page += " <big>&rarr;</big>&nbsp;current prevalence: {:.2f} known infected per 100,000 population (over all time). ".format(dstr.prevalence_100k)
+        page += "Weekly incident limits are "
+        page += f"{dstr.weeklyIncidenceLimit1Per100k:.2f} ({dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K}'s limit), "
+        page += f"{dstr.weeklyIncidenceLimit2Per100k:.2f} ({dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K}'s limit), "
+        page += f"{dstr.weeklyIncidenceLimit3Per100k:.2f} ({dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K}'s limit). <br/>"
         page += "(The plot's background color gradient for a {singular} indicates how large its prevalence value is, " \
                 "relative to all other {plural}; e.g. the less colourful the gradient is, " \
                 "the less total cases per inhabitant exist (over all time), in relation to the maximum prevalence value over all {plural})." \

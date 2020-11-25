@@ -288,7 +288,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         # plot incidence border lines
         limit = cov_area.weeklyIncidenceLimit1Per100k
         lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                             label="incid. border %i/week/100k pop.: %.2f" % (cov_area.weeklyIncidenceLimit1Per100k, limit), color='#ff8c8c',
+                             label="incid. border %i/week/100k pop.: %.2f" % (dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K, limit), color='#ff8c8c',
                              linestyle=(0, (3, 5)))
 
         # plot second incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
@@ -296,7 +296,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         if incidence_max > inc * 0.8:
             limit = inc
             lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                                 label="incid. border %i/week/100k pop.: %.2f" % (cov_area.weeklyIncidenceLimit2Per100k, limit), color='#df4c4c',
+                                 label="incid. border %i/week/100k pop.: %.2f" % (dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K, limit), color='#df4c4c',
                                  linestyle=(0, (5, 4)))
 
         # plot 3rd incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
@@ -304,7 +304,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         if incidence_max > inc * 0.8:
             limit = inc
             lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                                 label="incid. border %i/week/100k pop.: %.2f" % (cov_area.weeklyIncidenceLimit3Per100k, limit), color='#d03c3c',
+                                 label="incid. border %i/week/100k pop.: %.2f" % (dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K, limit), color='#d03c3c',
                                  linestyle=(0, (6, 2)))
 
         ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
