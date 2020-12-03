@@ -21,7 +21,6 @@ do
 done
 shift $(($OPTIND -1))
 
-
 function waitForStartTime(){
 	if [ -z "${TIME}" ]; then return; fi
 	
@@ -61,7 +60,9 @@ git pull |& tee -a ${LOGFILE}
 # remaining problem: plots contain the time so they will always be rewritten.
 # (Perhaps also differing matplotlib different PNG binaries?)
 # --> Either do NOT often switch machines ... or remove the time from the plots?
-cd ${WWW_REPO_PATH} |& tee -a ${LOGFILE}
+cd ${WWW_REPO_PATH} 
+pwd |& tee -a ${LOGFILE}
+git co master
 git pull |& tee -a ${LOGFILE}
 
 # come back to code repo
@@ -69,7 +70,7 @@ cd - |& tee -a ${LOGFILE}
 
 # python dependencies, enter and log source folder
 source ~/.bashrc && conda activate covh
-cd src
+cd ${PROJECT_DIR}/src
 pwd |& tee -a ${LOGFILE}
 
 # the whole shebang
