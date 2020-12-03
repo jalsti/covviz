@@ -53,6 +53,7 @@ pwd |& tee -a ${LOGFILE}
 
 
 # make sure to work on the newest code
+git stash
 git co main
 git pull |& tee -a ${LOGFILE}
 
@@ -62,6 +63,7 @@ git pull |& tee -a ${LOGFILE}
 # --> Either do NOT often switch machines ... or remove the time from the plots?
 cd ${WWW_REPO_PATH} 
 pwd |& tee -a ${LOGFILE}
+git stash
 git co master
 git pull |& tee -a ${LOGFILE}
 
