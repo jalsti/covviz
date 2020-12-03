@@ -17,7 +17,8 @@ echo $(pwd) | tee -a $LOGFILE
 git pull | tee -a $LOGFILE
 
 # python dependencies, enter and log source folder
-source  ./py3science/bin/activate
+#~ source  ./py3science/bin/activate
+source ~/.bashrc && conda activate covh
 cd src
 echo $(pwd) | tee -a ../$LOGFILE
 
@@ -26,6 +27,7 @@ echo $(pwd) | tee -a ../$LOGFILE
 echo ... | tee -a ../$LOGFILE
 echo python initialize.py | tee -a ../$LOGFILE
 
-unbuffer python initialize.py | tee -a ../$LOGFILE
+#~ unbuffer python initialize.py | tee -a ../$LOGFILE
+PYTHONUNBUFFERED=1 python initialize.py | tee -a ../$LOGFILE
 
 

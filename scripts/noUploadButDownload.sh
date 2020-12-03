@@ -11,13 +11,15 @@ trap 'echo; echo "\"${last_command}\" command filed with exit code $?."' EXIT
 LOGFILE="logs/$(date +%Y%m%d-%H%M)_noUploadButDownload.log"
 
 # python dependencies, enter and log source folder
-source  ./py3science/bin/activate
+#~ source  ./py3science/bin/activate
+source ~/.bashrc && conda activate covh
 cd src
 echo $(pwd) | tee -a ../$LOGFILE
 
 # the whole shebang
 # remove the unbuffer command OR install unbuffer for this to work:    sudo apt install expect
-unbuffer python noUploadButDownload.py | tee -a ../$LOGFILE
+#~ unbuffer python noUploadButDownload.py | tee -a ../$LOGFILE
+PYTHONUNBUFFERED=1 python noUploadButDownload.py | tee -a ../$LOGFILE
 
 echo done.
 
