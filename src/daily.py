@@ -15,7 +15,7 @@
 import os, datetime, shutil, subprocess
 
 import dataFiles, dataMangling, dataPlotting, districtDistances, dataTable, dataPages
-from dataFiles import PICS_PATH, PAGES_PATH, WWW_REPO_PICS, WWW_REPO_PAGES, WWW_REPO_PATH, WWW_REPO_PATH_GIT_SCRIPT, REPO_PATH, ALSO_TO_BE_COPIED
+from dataFiles import DATA_PATH, PICS_PATH, PAGES_PATH, WWW_REPO_DATA, WWW_REPO_PICS, WWW_REPO_PAGES, WWW_REPO_PATH, WWW_REPO_PATH_GIT_SCRIPT, REPO_PATH, ALSO_TO_BE_COPIED
 
 # TODO: move the following (up to showSomeExtremeValues()) into some dataRanking perhaps?
 # also make HTML tables from it.
@@ -149,7 +149,8 @@ def generate_all_plots(withSyntheticData=True):
 
 def copy_all():
     print (os.getcwd()) 
-    fromTo = [[PICS_PATH, WWW_REPO_PICS], 
+    fromTo = [[DATA_PATH, WWW_REPO_DATA], 
+              [PICS_PATH, WWW_REPO_PICS], 
               [PAGES_PATH, WWW_REPO_PAGES]]
     for s, d in fromTo:
         try:

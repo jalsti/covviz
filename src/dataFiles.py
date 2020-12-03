@@ -34,6 +34,7 @@ PICS_PATH = os.path.join(DATA_PATH, "..", "pics")
 PAGES_PATH = os.path.join(DATA_PATH, "..", "pages")
 
 WWW_REPO_PATH = os.path.join(DATA_PATH, "..", "..", "cov19de")
+WWW_REPO_DATA = os.path.join(WWW_REPO_PATH, "data")
 WWW_REPO_PICS = os.path.join(WWW_REPO_PATH, "pics")
 WWW_REPO_PAGES = os.path.join(WWW_REPO_PATH, "pages")
 WWW_REPO_PATH_GIT_SCRIPT = "./git-add-commit-push.sh"
