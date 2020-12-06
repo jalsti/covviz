@@ -1,10 +1,12 @@
 #!/bin/bash
 
+SELF=$(realpath $0)
 ARGS="$@"
 
 TIME=""	# any time format `date` understands, used in waitForStartTime()
 PROJECT_DIR=$(realpath $(dirname ${0})/..)
 WWW_REPO_PATH=$(realpath ${PROJECT_DIR}/../cov19de)
+
 
 # read parameters
 while getopts vt: OPT
@@ -91,7 +93,7 @@ fi
 
 # restart waiting for next run, if time has been given
 if [ -n "${TIME}" ]; then 
-	exec $0 ${ARGS} 
+	exec ${SELF} ${ARGS} 
 fi
 
 
