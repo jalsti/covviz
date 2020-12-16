@@ -27,7 +27,7 @@ if not os.getenv('WALYAND_DISPLAY') and not os.getenv('DISPLAY') and not os.gete
     matplotlib.use('Agg')  # to be able to plot without GUI (e.g. on a headless server), this must be set before importing pyplot
 
 from matplotlib import pyplot as plt
-from matplotlib.ticker import MultipleLocator as mpl_MultipleLocator, MaxNLocator as mpl_MaxNLocator
+from matplotlib.ticker import MultipleLocator as mpl_MultipleLocator, MaxNLocator as mpl_MaxNLocator, StrMethodFormatter
 from matplotlib.collections import LineCollection
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 
@@ -117,6 +117,9 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     daily = cov_area.daily
     isDistrict = type(cov_area) == dataMangling.District
 
+    # label rotations
+    lrotation = -40
+
     # enlarger for y-limits of axis' tick ranges to not plot too close to top
     PLOT_YLIM_ENLARGER_DAILYS = 1.2  # if this is too low (e.g. 1.2), chances are good that some daily graphs go beyond the top, due to below manual changes to automatic ticks
     PLOT_YLIM_ENLARGER_CUMU = 1.02
@@ -128,10 +131,12 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ax: plt.Axes # type hint for better IDE auto-completion
     fig, ax = plt.subplots(figsize=(10, 6))  # , constrained_layout=True)
     ax.name = "dailys"
+    ax.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}')) # no scientific '1e6' notations please
 
     # add axis for cumulative total cases (with seperate y-axis), and background gradient
     ax_cumu: plt.Axes = ax.twinx()
     ax_cumu.name = "cumulative"
+    ax_cumu.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}')) # no scientific '1e6' notations please
 
     # ax for background gradient
     ax_bg: plt.Axes = ax.twinx()
@@ -156,6 +161,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         ax_sum.name = "sum incidences"
         ax_sum.set_zorder(4)
         ax_for_marker = ax_sum
+        ax_sum.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}')) # no scientific '1e6' notations please
     else:
         ax_sum = ax # just a dummy to stop IDEs from crying about maybe uninitialized variable
 
@@ -167,9 +173,10 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     # ax.grid(True, which='minor', axis='y', ls='--', alpha=0.5)
 
     # set x axis minor tick interval to only each 5 days one tick, as compromise between being exact and easily readable
-    fig.autofmt_xdate(rotation=60)
+    fig.autofmt_xdate(rotation=lrotation, ha='left')
     ax.xaxis_date()
     ax.xaxis.set_minor_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 30, 5)))
+    ax.tick_params(axis='x', length=8)
 
     #
     # plot background gradient, indicating relative prevalence
@@ -214,20 +221,21 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     #
     # plot cumulative cases data for the 2nd y axis
     ax_cumu.plot(dates, cov_area.cumulative, color='w', linewidth=7, alpha=0.1) # plot white background for next line
-    lns5 = ax_cumu.plot(dates, cov_area.cumulative, label="total cases reported at RiskLayer", color='#50C0FF', linestyle='dotted', linewidth=2)
+    lns5 = ax_cumu.plot(dates, cov_area.cumulative, label="cumulative total cases reported at RiskLayer", color='#50C0FF', linestyle='dotted', linewidth=2)
 
     ax_cumu.set_ylim(0, max(cov_area.cumulative) * PLOT_YLIM_ENLARGER_CUMU)
-    ax_cumu.set_ylabel("cumulative total cases")
-    ax_cumu.yaxis.label.set_color(color=lns5[0].get_color())
-    ax_cumu.tick_params(axis='y', colors=lns5[0].get_color())
+    ax_cumu.set_ylabel("cumulative total cases", color=lns5[0].get_color())
+
 
     #
     # plot rolling average
     # rolling averages for daily cases, over two weeks
     if not isDistrict:
+        # plot simple line
         ax.plot(dates, cov_area.rolling_mean14, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
         lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=2)
     else:
+        # plot filled area for districts
         rmean_data = cov_area.rolling_mean14[0]
         lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=0)
         ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % 14,
@@ -240,12 +248,12 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ybox3 = TextArea("moving average", textprops=dict(color=lns3[0].get_color(), rotation='vertical'))
     ybox = VPacker(children=[ybox3, ybox2, ybox1], align="center", pad=0, sep=5)
     anchored_ybox = AnchoredOffsetbox(loc=8, child=ybox, pad=0., frameon=False,
-                                      bbox_to_anchor=(-0.08, 0.2),  # if first value smaller than -0.08 we get in trouble with graph for country
+                                      bbox_to_anchor=(-0.09, 0.2),  # if first value smaller than -0.08 we get in trouble with graph for country
                                       bbox_transform=ax.transAxes, borderpad=0.)
     ax.add_artist(anchored_ybox)
 
     #
-    # plot rolling sum of prior 7 days cases for date, if it is a Kreis, where the according incidence borders are of interest
+    # plot rolling sum of prior 7 days cases for date, if it is a district, where the according incidence borders are of interest
     yminor = 0
     if isDistrict:
         # plot 7 day sums, only if incidence borders can be calculated via population
@@ -270,7 +278,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         # also yellow background for label
         ax_sum.set_ylabel(label + "\n(to determine incidence borders)", color=COLOR_INCID_SUMS,
                           bbox=dict(color='yellow', alpha=0.3, boxstyle='round', mutation_aspect=0.5))
-        ax_sum.tick_params(axis='y', colors=COLOR_INCID_SUMS, size=4, width=1.5)
+        ax_sum.tick_params(axis='y', colors=COLOR_INCID_SUMS, size=8)
 
         # adjust sum y axis visibilities
         ax_sum.set_frame_on(True)
@@ -319,9 +327,9 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
         yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
         ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
+    #
+    #  plot rolling averages for daily cases, over a week, if not a district
     if not isDistrict:
-        #
-        #  plot rolling averages for daily cases, over a wekk, if not a Kreis
         ax.plot(dates, cov_area.rolling_mean7, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
         lns6_1 = ax.plot(dates, cov_area.rolling_mean7, label="centered moving average, %s days cases" % 7, color='#900090', zorder=3)
 
@@ -364,7 +372,11 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
 
     # set x axis major ticks to month starts
     ax.xaxis.set_major_locator(matplotlib.dates.DayLocator(bymonthday=range(1, 32, 31)))  # if placing this setting above all other, major ticks won't appear
-    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m"))  # its date formatter must be set, if setting major locator
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%m/%Y"))  # its date formatter must be set, if setting major locator
+
+    # set below here as else will not work for districts if setting above with rest of ax_cumu stuff
+    ax_cumu.tick_params(axis='y', colors=lns5[0].get_color(), labelrotation=lrotation, length=8)
+    ax.tick_params(axis='y', labelrotation=-lrotation, length=8)
 
     # print(title)
     if isDistrict:
