@@ -349,7 +349,16 @@ def Deutschland(dm: dataMangling.DataMangled, cmap, filename_HTML="Deutschland.h
             "<br/>\n".format(singular="Bundesland (federal state)", plural="Bundeslaender (federal states)")
 
 
+    # alphabetically sorted, comma separated list of fed state names
+    locs=",".join(sorted(dm.Bundeslaender_sorted.drop(["Deutschland", "Dummyland"], errors='ignore').index.tolist())[:])
+    # link to choice page for fed states
+    page += CHOICES_ITEMS_JS_STUB.format(choice_id="all_fed_states_plots", locs=locs, cols=4,
+                                         title="covviz plots of all 16 german Bundeslaender \(federal states\)",
+                                         linktext="Open overview of (only) the plots of all 16 german Bundeslaender \(federal states\) in a new window.")
+
+
     page += '<div class="bloverview">'
+
     page += bloverview(dm.Bundeslaender_sorted)
     page += '</div>'
     
