@@ -156,21 +156,21 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ax_for_marker = ax
 
     # if isKreis, add axis for daily sums (with seperate y-axis), set z-order, use for marker
-    if isDistrict:
-        ax_sum: plt.Axes = ax.twinx()
-        ax_sum.name = "sum incidences"
-        ax_sum.set_zorder(4)
-        ax_for_marker = ax_sum
-        ax_sum.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}')) # no scientific '1e6' notations please
-    else:
-        ax_sum = ax # just a dummy to stop IDEs from crying about maybe uninitialized variable
+        #if isDistrict:
+    ax_sum: plt.Axes = ax.twinx()
+    ax_sum.name = "sum incidences"
+    ax_sum.set_zorder(4)
+    ax_for_marker = ax_sum
+    ax_sum.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}')) # no scientific '1e6' notations please
+        #else:
+        #    ax_sum = ax # just a dummy to stop IDEs from crying about maybe uninitialized variable
 
 
     # set grids
     ax.grid(True, which='major', axis='x', ls='-', alpha=0.9)  # if not set here above, major ticks of x axis won't be visible
     ax.grid(True, which='minor', axis='x', ls='--', alpha=0.5)  # if not set here above, minor ticks of x axis won't be visible
-    # ax.grid(True, which='major', axis='y', ls='-', alpha=0.7)  # if not set here above, ticks of left side y axis won't be visible
-    # ax.grid(True, which='minor', axis='y', ls='--', alpha=0.5)
+        # ax.grid(True, which='major', axis='y', ls='-', alpha=0.7)  # if not set here above, ticks of left side y axis won't be visible
+        # ax.grid(True, which='minor', axis='y', ls='--', alpha=0.5)
 
     # set x axis minor tick interval to only each 5 days one tick, as compromise between being exact and easily readable
     fig.autofmt_xdate(rotation=lrotation, ha='left')
@@ -180,7 +180,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
 
     #
     # plot background gradient, indicating relative prevalence
-    if not "Deutschland" in cov_area.filename:
+    if not "Deutschland" in cov_area.name:
         # backgroud gradient indicating local max prevalence values compared with global
         mid = mp_dates.date2num(dates)[int(len(dates) / 2)]  # get middle point of the dates as plot start point
         # create some artificially plotting points, at the x-middle point of the dates, from zero up the y-axis' maximum
@@ -208,9 +208,9 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     red_days = 5 # '5' matches the minor ticks on x-axis
     lns1 = ax.plot(dates, daily, label=f"raw daily cases (weekend-flawed), red: last {red_days}", color='#B0B0B0', zorder=1)
     ax.plot(dates[-red_days:], daily[-red_days:], color='#FF8080')
-    # lns1 = ax.plot(dates, daily, label="daily cases (weekend-flawed), 2 weeks: red", color='#AAAAAA')
-    # lns1_2 = ax.plot(dates[-14:], daily[-14:], label="daily cases, last 14 days dark gray", color='red')
-    # print (len(dates[-14:]))
+        # lns1 = ax.plot(dates, daily, label="daily cases (weekend-flawed), 2 weeks: red", color='#AAAAAA')
+        # lns1_2 = ax.plot(dates[-14:], daily[-14:], label="daily cases, last 14 days dark gray", color='red')
+        # print (len(dates[-14:]))
 
     # set y1 axis tick automatic interval and range restrictions, allow no 'half daily cases' (no floating point numbers)
     yloc = mpl_MaxNLocator(integer=True)
@@ -227,22 +227,28 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ax_cumu.set_ylabel("cumulative total cases", color=lns5[0].get_color())
 
 
-    #
+        #
+        # plot rolling average
+        # rolling averages for daily cases, over two weeks
+        # if not isDistrict:
+        #     # plot simple line
+        #     ax.plot(dates, cov_area.rolling_mean14, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
+        #     lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=2)
+        # else:
+        #
     # plot rolling average
-    # rolling averages for daily cases, over two weeks
-    if not isDistrict:
-        # plot simple line
-        ax.plot(dates, cov_area.rolling_mean14, color='w', linewidth=11, alpha=0.1)  # plot white background for next line
-        lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=2)
-    else:
-        # plot filled area for districts
-        rmean_data = cov_area.rolling_mean14[0]
-        lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=0)
-        ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % 14,
-                                 color=lns3[0].get_color(), linewidth=0, zorder=0)
+    # plot filled area ~~for districts~~
+    rmean_data = cov_area.rolling_mean14[0]
+    # plot white background on top border
+    _ = ax.plot(dates, cov_area.rolling_mean14, color='white', zorder=0, linewidth=7, alpha=0.1)
+    # plot top border line additional to filling, for easier legend
+    lns3 = ax.plot(dates, cov_area.rolling_mean14, label="centered moving average, %s days cases" % 14, color='#FFD010', linewidth=3, zorder=0)
+    # fill with zorder above white background
+    ax.fill_between(dates, rmean_data, [0] * len(dates), label="centered moving average, %s days cases" % 14,
+                             color=lns3[0].get_color(), linewidth=0, zorder=1)
 
     #
-    # multi colored y-axis label
+    # y-axis label multi colored
     ybox1 = TextArea("raw daily cases", textprops=dict(color=lns1[0].get_color(), rotation='vertical'))
     ybox2 = TextArea(" / ", textprops=dict(color="black", rotation='vertical'))
     ybox3 = TextArea("moving average", textprops=dict(color=lns3[0].get_color(), rotation='vertical'))
@@ -253,99 +259,102 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ax.add_artist(anchored_ybox)
 
     #
-    # plot rolling sum of prior 7 days cases for date, if it is a district, where the according incidence borders are of interest
+    # plot rolling sum of prior 7 days cases for date, ~~if it is a district, where the according incidence borders are of interest~~
     yminor = 0
+        #if isDistrict:
+
+    # plot 7 day sums, only if incidence borders can be calculated via population
+    # according grid for it
+    ax_sum.grid(True, which='major', axis='y', ls='-', alpha=0.6, color=COLOR_INCID_SUMS)  # if not set here above, ticks of left side y axis won't be visible
+    ax_sum.grid(True, which='minor', axis='y', ls='--', alpha=0.2, color=COLOR_INCID_SUMS)
+
+    yloc2 = mpl_MaxNLocator(integer=True)
+    ax_sum.yaxis.set_major_locator(yloc2)
+
+    #
+    # move total cases y axis away to outside
     if isDistrict:
-        # plot 7 day sums, only if incidence borders can be calculated via population
-        # according grid for it
-        ax_sum.grid(True, which='major', axis='y', ls='-', alpha=0.6, color=COLOR_INCID_SUMS)  # if not set here above, ticks of left side y axis won't be visible
-        ax_sum.grid(True, which='minor', axis='y', ls='--', alpha=0.2, color=COLOR_INCID_SUMS)
-
-        yloc2 = mpl_MaxNLocator(integer=True)
-        ax_sum.yaxis.set_major_locator(yloc2)
-
-        # move total cases y axis away to outside
         ax_cumu.spines["right"].set_position(("axes", 1.15))
+    else:
+        ax_cumu.spines["right"].set_position(("axes", 1.20))
 
-        # incidences graph plotting
-        label = 'sum of daily cases, for prior %s days of date' % 7
-        # plot yellow background for sum graph, then graph over it
-        ax_sum.plot(dates, cov_area.incidence_sums, label=label, color='yellow', linewidth=7, alpha=0.4)
-        lns0 = ax_sum.plot(dates, cov_area.incidence_sums, label=label, color=COLOR_INCID_SUMS)
-        # set axis properties
-        incidence_max = max(cov_area.incidence_sums)
-        ax_sum.set_ylim(0, incidence_max * PLOT_YLIM_ENLARGER_DAILYS)
-        # also yellow background for label
-        ax_sum.set_ylabel(label + "\n(to determine incidence borders)", color=COLOR_INCID_SUMS,
-                          bbox=dict(color='yellow', alpha=0.3, boxstyle='round', mutation_aspect=0.5))
-        ax_sum.tick_params(axis='y', colors=COLOR_INCID_SUMS, size=8)
+    # incidences graph plotting
+    label = 'sum of daily cases, for prior %s days of date' % 7
+    # plot yellow background for sum graph, then graph over it
+    ax_sum.plot(dates, cov_area.incidence_sums, label=label, color='yellow', linewidth=7, alpha=0.4)
+    lns0 = ax_sum.plot(dates, cov_area.incidence_sums, label=label, color=COLOR_INCID_SUMS)
+    # set axis properties
+    incidence_max = max(cov_area.incidence_sums)
+    ax_sum.set_ylim(0, incidence_max * PLOT_YLIM_ENLARGER_DAILYS)
+    # also yellow background for label
+    ax_sum.set_ylabel(label + "\n(shows incidence border under-/overshooting)", color=COLOR_INCID_SUMS,
+                      bbox=dict(color='yellow', alpha=0.3, boxstyle='round', mutation_aspect=0.5))
+    ax_sum.tick_params(axis='y', colors=COLOR_INCID_SUMS, size=8)
 
-        # adjust sum y axis visibilities
-        ax_sum.set_frame_on(True)
-        ax_sum.patch.set_visible(False)
-        for sp in ax_sum.spines.values():
-            sp.set_visible(False)
-        ax_sum.spines["right"].set_visible(True)
+    # adjust sum y axis visibilities
+    ax_sum.set_frame_on(True)
+    ax_sum.patch.set_visible(False)
+    for sp in ax_sum.spines.values():
+        sp.set_visible(False)
+    ax_sum.spines["right"].set_visible(True)
 
-        # calculate some good value for minor ticks
-        yticks = yloc2()
-        ydiff = yticks[1]
-        yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1
-        ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
+    # calculate some good value for minor ticks
+    yticks = yloc2()
+    ydiff = yticks[1]
+    yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1
+    ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
-        # plot incidence border lines
-        limit = cov_area.weeklyIncidenceLimit1Per100k
-        lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                             label="incid. border %i/week/100k pop.: %.2f" % (dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K, limit), color='#ff8c8c',
-                             linestyle=(0, (3, 5)))
+    # plot incidence border lines
+    limit = cov_area.weeklyIncidenceLimit1Per100k
+    label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K:3}/week/100k pop.: {limit:,.2f}"
+    lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#ff8c8c', linestyle=(0, (3, 5)))
 
-        # plot second incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
-        inc = cov_area.weeklyIncidenceLimit2Per100k
-        if incidence_max > inc * 0.8:
-            limit = inc
-            lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                                 label="incid. border %i/week/100k pop.: %.2f" % (dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K, limit), color='#df4c4c',
-                                 linestyle=(0, (5, 4)))
+    # plot second incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
+    inc = cov_area.weeklyIncidenceLimit2Per100k
+    if incidence_max > inc * 0.8:
+        limit = inc
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K:3}/week/100k pop.: {limit:,.2f}"
+        lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#df4c4c', linestyle=(0, (5, 4)))
 
-        # plot 3rd incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
-        inc = cov_area.weeklyIncidenceLimit3Per100k
-        if incidence_max > inc * 0.8:
-            limit = inc
-            lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit],
-                                 label="incid. border %i/week/100k pop.: %.2f" % (dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K, limit), color='#d03c3c',
-                                 linestyle=(0, (6, 2)))
+    # plot 3rd incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
+    inc = cov_area.weeklyIncidenceLimit3Per100k
+    if incidence_max > inc * 0.8:
+        limit = inc
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K:3}/week/100k pop.: {limit:,.2f}"
+        lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#d03c3c', linestyle=(0, (6, 2)))
 
-        ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
+    ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
 
 
-        # set new ax limit for daily cases / averaging, trying to have evenly distributed major ticks for both y axes
-        #   this will work in many cases, but still some work would be todo to get all left/right major ticks in same grid
-        ax.set_ylim(0, yloc()[-2])
-        ax_sum.set_ylim(0, yloc2()[-2])
-        yticks = yloc2()
-        ydiff = yticks[1]
-        yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
-        ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
+    # set new ax limit for daily cases / averaging, trying to have evenly distributed major ticks for both y axes
+    #   in preparation (? still needed?) for equalize_axes_ticks()
+    ax.set_ylim(0, yloc()[-2])
+    ax_sum.set_ylim(0, yloc2()[-2])
+    yticks = yloc2()
+    ydiff = yticks[1]
+    yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
+    ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
     #
     #  plot rolling averages for daily cases, over a week, if not a district
-    if not isDistrict:
-        ax.plot(dates, cov_area.rolling_mean7, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
-        lns6_1 = ax.plot(dates, cov_area.rolling_mean7, label="centered moving average, %s days cases" % 7, color='#900090', zorder=3)
-
-        ax.grid(True, which='major', axis='y', ls='-', alpha=0.9)  # if not set here above, ticks of left side y axis won't be visible
-        ax.grid(True, which='minor', axis='y', ls='--', alpha=0.7)
-
-        # determine some meaningfull y1 minor tick value, also used for setting center bar's y position
-        yticks = yloc()
-        ydiff = yticks[1]
-        yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
-        ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(yminor))
+    # if not isDistrict:
+    #     ax.plot(dates, cov_area.rolling_mean7, color='w', linewidth=7, alpha=0.1)  # plot white background for next line
+    #     lns6_1 = ax.plot(dates, cov_area.rolling_mean7, label="centered moving average, %s days cases" % 7, color='#900090', zorder=3)
+    #
+    #     ax.grid(True, which='major', axis='y', ls='-', alpha=0.9)  # if not set here above, ticks of left side y axis won't be visible
+    #     ax.grid(True, which='minor', axis='y', ls='--', alpha=0.7)
+    #
+    #     # determine some meaningfull y1 minor tick value, also used for setting center bar's y position
+    #     yticks = yloc()
+    #     ydiff = yticks[1]
+    #     yminor = int(ydiff / 5 + 0.5) if ydiff >= 8 else 1  # '+0.5' to round up for '8'
+    #     ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(yminor))
 
     #
     # plot marker for temporal center date
     # the '1.3'-multiplier below, for setting the y-position of the marker, is a none-deterministic evaluated value which lets the
     #   triangle marker's bottom point be placed nearly at the x-axis, for all of the 16 Bundeslaender with their different case numbers
+    # if yminor <= 1:     print(f"***  {yminor=}")
     marker_y = yminor * 1.3 if yminor > 1 else 0.8
     center = cov_area.center
     center_date = cov_area.center_date
@@ -379,10 +388,10 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ax.tick_params(axis='y', labelrotation=-lrotation, length=8)
 
     # print(title)
-    if isDistrict:
-        equalize_axes_ticks(base_ax=ax_sum, adjust_axs=[ax, ax_cumu])
-    else:
-        equalize_axes_ticks(base_ax=ax, adjust_axs=[ax_cumu])
+    # if isDistrict:
+    equalize_axes_ticks(base_ax=ax_sum, adjust_axs=[ax, ax_cumu])
+    # else:
+    #     equalize_axes_ticks(base_ax=ax, adjust_axs=[ax_cumu])
 
     if cov_area.filename:
         fig.savefig(os.path.join(dataFiles.PICS_PATH, cov_area.filename), bbox_inches='tight')

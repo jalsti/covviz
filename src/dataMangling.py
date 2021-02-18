@@ -182,6 +182,15 @@ class CovidDataArea:
     rolling_mean14: pandas.DataFrame = None
     """rolling mean of the last 14 days of the area's cases"""
 
+    weeklyIncidenceLimit1Per100k: float = None
+    """weekly 7 day incidence border #1 (35) """
+
+    weeklyIncidenceLimit2Per100k: float = None
+    """weekly 7 day incidence border #2 (50) """
+
+    weeklyIncidenceLimit3Per100k: float = None
+    """weekly 7 day incidence border #3 (200) """
+
 
 class District(CovidDataArea):
     """structure to hold the pandemic data of a german district ('Kreis'), which may be a single city or a region of several small once"""
@@ -209,14 +218,6 @@ class District(CovidDataArea):
     sources: str = None
     """HTML links to the sources of the data"""
 
-    weeklyIncidenceLimit1Per100k: float = None
-    """weekly 7 day incidence border #1 (35) """
-
-    weeklyIncidenceLimit2Per100k: float = None
-    """weekly 7 day incidence border #2 (50) """
-
-    weeklyIncidenceLimit3Per100k: float = None
-    """weekly 7 day incidence border #3 (200) """
 
 
 mangledData = DataMangled
@@ -439,6 +440,7 @@ def join_tables_for_and_aggregate_Bundeslaender(ts, bnn):
 
 
 def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
+    """ For the federal state with the given name, all data needed for plotting and/or data tables is gathered/calculated. """
     global mangledData
 
     if name in mangledData.feds:
@@ -492,6 +494,11 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
         # calculate last 7 days' incidence per 1 milllion population, 100,000 population
         cov_area.incidence_sum7_1mio = cov_area.new_last7days / cov_area.population * 1000000
         cov_area.incidence_sum7_100k = cov_area.new_last7days / cov_area.population * 100000
+
+        # 7 day incidence borders
+        cov_area.weeklyIncidenceLimit1Per100k = WEEKLY_INCIDENCE_LIMIT1_PER_100K * cov_area.population / 100000
+        cov_area.weeklyIncidenceLimit2Per100k = WEEKLY_INCIDENCE_LIMIT2_PER_100K * cov_area.population / 100000
+        cov_area.weeklyIncidenceLimit3Per100k = WEEKLY_INCIDENCE_LIMIT3_PER_100K * cov_area.population / 100000
 
         # get HTML link of federal state
         cov_area.link = bulaLink(name)
