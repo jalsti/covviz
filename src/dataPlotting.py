@@ -276,7 +276,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     if isDistrict:
         ax_cumu.spines["right"].set_position(("axes", 1.15))
     else:
-        ax_cumu.spines["right"].set_position(("axes", 1.20))
+        ax_cumu.spines["right"].set_position(("axes", 1.18))
 
     # incidences graph plotting
     label = 'sum of daily cases, for prior %s days of date' % 7

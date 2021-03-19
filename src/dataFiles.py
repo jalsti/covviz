@@ -17,6 +17,11 @@
 """
 
 import os, shutil, hashlib, time, datetime, sys
+
+# new strange ssl problem & workaround by simply switching off verification March 2021
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context 
+
 import pandas, wget, requests, numpy
 import bs4 as bs
 import pandas as pd
