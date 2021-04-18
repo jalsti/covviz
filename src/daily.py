@@ -185,8 +185,8 @@ def git_commit_and_push(path=WWW_REPO_PATH, script=WWW_REPO_PATH_GIT_SCRIPT):
         os.chdir(before)
 
 
-def daily_update(regenerate_pages_regardless_if_new_data=False, regenerate_plots_regardless_if_new_data=False,
-                 publish=True, showExtremes=True, withSyntheticData=False, downloadNewData=True):
+def daily_update(regenerate_pages_regardless_if_new_data=True, regenerate_plots_regardless_if_new_data=True,
+                 publish=False, showExtremes=True, withSyntheticData=False, downloadNewData=True):
     print ("Started at", ("%s" % datetime.datetime.now()) [:19],"\n")
     
     new_CSV = success1 = success2 = success3 = success4 = success5 = False
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     daily_update(publish=False, withSyntheticData=False); exit()
     # daily_update(regenerate_pages_regardless_if_new_data=True, withSyntheticData=False); exit()
     
-    daily_update()
+    daily_update(publish=True)
     
     loadAndShowSomeExtremeValues()
     

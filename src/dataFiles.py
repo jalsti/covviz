@@ -20,7 +20,8 @@ import os, shutil, hashlib, time, datetime, sys
 
 # new strange ssl problem & workaround by simply switching off verification March 2021
 import ssl
-ssl._create_default_https_context = ssl._create_unverified_context 
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 import pandas, wget, requests, numpy
 import bs4 as bs
@@ -383,6 +384,7 @@ def downloadData(andStore=True,
     filename = wget.download(url, out=target)
     print ("downloaded:", filename)
     ts = read_as_CSV_or_as_SSV(filename, encoding=encoding)
+    ts.rename(columns={"ISO": "AGS"}, inplace=True)
 
     last_col = ts.columns[2:].tolist()[-1]
     print ("newest column:", last_col)
@@ -447,6 +449,7 @@ def load_data(ts_f=TS_NEWEST, bnn_f=BNN_FILE, ifPrint=True, encoding='utf-8'):
 
     # ts=pandas.read_csv(ts_f, encoding='cp1252') # encoding='utf-8')
     ts = read_as_CSV_or_as_SSV(filename=ts_f, encoding=encoding)
+    ts.rename(columns={"ISO": "AGS"}, inplace=True)
 
     ts = attribution_and_repair(ts)
     return ts, bnn

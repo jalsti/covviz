@@ -16,9 +16,8 @@ import daily
 
 if __name__ == '__main__':
     
-    daily.daily_update(showExtremes=True, withSyntheticData=False)
+    daily.daily_update(publish=True, showExtremes=True, withSyntheticData=False)
     
     # daily.showSomeExtremeValues()
     
     print ("\nREADY.")
-    
