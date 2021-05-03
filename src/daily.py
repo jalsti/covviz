@@ -101,8 +101,9 @@ def download_all(showExtremes=True):
     new_CSV, _ = dataFiles.downloadData()
     print ("\ndownloaded timeseries CSV was new: %s \n" % new_CSV)
 
-    new_master_state = dataFiles.get_master_sheet_haupt(sheetID=dataFiles.RISKLAYER_MASTER_SHEET)
-    print ("\ndownloaded mastersheet has new state: %s \n" % new_master_state)
+    new_master_state = False
+    #new_master_state = dataFiles.get_master_sheet_haupt(sheetID=dataFiles.RISKLAYER_MASTER_SHEET)
+    #print ("\ndownloaded mastersheet has new state: %s \n" % new_master_state)
     
     if showExtremes:
         loadAndShowSomeExtremeValues()
