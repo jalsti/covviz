@@ -29,7 +29,8 @@ import districtDistances
 WEEKLY_INCIDENCE_LIMIT1_PER_100K = 35
 WEEKLY_INCIDENCE_LIMIT2_PER_100K = 50
 WEEKLY_INCIDENCE_LIMIT3_PER_100K = 100
-WEEKLY_INCIDENCE_LIMIT4_PER_100K = 200
+WEEKLY_INCIDENCE_LIMIT4_PER_100K = 165
+WEEKLY_INCIDENCE_LIMIT5_PER_100K = 200
 
 class DataMangled:
     """structure to hold the mangled overall covid data, gathered by `dataMangled()`"""
@@ -193,7 +194,10 @@ class CovidDataArea:
     """weekly 7 day incidence border #3 (100) """
     
     weeklyIncidenceLimit4Per100k: float = None
-    """weekly 7 day incidence border #4 (200) """
+    """weekly 7 day incidence border #4 (165) """
+    
+    weeklyIncidenceLimit5Per100k: float = None
+    """weekly 7 day incidence border #5 (200) """
 
 
 class District(CovidDataArea):
@@ -411,6 +415,7 @@ def get_Kreis(AGS):
         cov_area.weeklyIncidenceLimit2Per100k = WEEKLY_INCIDENCE_LIMIT2_PER_100K * cov_area.population / 100000
         cov_area.weeklyIncidenceLimit3Per100k = WEEKLY_INCIDENCE_LIMIT3_PER_100K * cov_area.population / 100000
         cov_area.weeklyIncidenceLimit4Per100k = WEEKLY_INCIDENCE_LIMIT4_PER_100K * cov_area.population / 100000
+        cov_area.weeklyIncidenceLimit5Per100k = WEEKLY_INCIDENCE_LIMIT5_PER_100K * cov_area.population / 100000
 
 
         # get HTML links of district and data sources
@@ -505,6 +510,7 @@ def get_BuLa(Bundeslaender: pandas.DataFrame, name, datacolumns):
         cov_area.weeklyIncidenceLimit2Per100k = WEEKLY_INCIDENCE_LIMIT2_PER_100K * cov_area.population / 100000
         cov_area.weeklyIncidenceLimit3Per100k = WEEKLY_INCIDENCE_LIMIT3_PER_100K * cov_area.population / 100000
         cov_area.weeklyIncidenceLimit4Per100k = WEEKLY_INCIDENCE_LIMIT4_PER_100K * cov_area.population / 100000
+        cov_area.weeklyIncidenceLimit5Per100k = WEEKLY_INCIDENCE_LIMIT5_PER_100K * cov_area.population / 100000
 
         # get HTML link of federal state
         cov_area.link = bulaLink(name)
