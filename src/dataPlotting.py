@@ -31,6 +31,9 @@ from matplotlib.ticker import MultipleLocator as mpl_MultipleLocator, MaxNLocato
 from matplotlib.collections import LineCollection
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 
+from matplotlib.colors import hsv_to_rgb
+
+
 import dataFiles
 import dataMangling
 
@@ -110,6 +113,11 @@ def equalize_axes_ticks(base_ax: plt.Axes, adjust_axs: [plt.Axes], multiple_of: 
         ax.set_ylim(0, new_ticks[1] * (len(new_ticks)-1))
 
 
+def hsv2rgb(h, s, v):
+    """ return HSV valued color definition as normalized RGB """
+    return hsv_to_rgb((h/360, s/100, v/100))
+
+
 def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDataArea, ifShow=True, ifCleanup=True):
     """Creates the image with the different statistic graph plots for the covid-19 cases of a country, Bundesland or Kreis"""
 
@@ -126,7 +134,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     # plotting color for 7-daily sums graph
     COLOR_INCID_SUMS = '#2020D0'
 
-    lns0, lns1, lns1_0, lns3, lns3_0, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2, lns6_3, lns6_4, lns6_5 = [], [], [], [], [], [], [], [], [], [], [], [], [], []
+    lns0, lns1, lns1_0, lns3, lns3_0, lns3_1, lns4_1, lns4_2, lns5, lns6_1, lns6_2, lns6_3, lns6_4, lns6_5, lns6_6 = [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
 
     ax: plt.Axes # type hint for better IDE auto-completion
     fig, ax = plt.subplots(figsize=(10, 6))  # , constrained_layout=True)
@@ -307,35 +315,42 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     # plot incidence border lines
     limit = cov_area.weeklyIncidenceLimit1Per100k
     label = f"incid. border  {dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-    lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#ff8c8c', linestyle=(0, (2, 5)))
+    lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(15, 50, 90), linestyle=(0, (2, 7)))
 
     # plot second incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit2Per100k
     if incidence_max > inc * 0.8:
         limit = inc
         label = f"incid. border  {dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#ef7c7c', linestyle=(0, (2, 4)))
+        lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(12, 55, 86), linestyle=(0, (3, 6)))
 
     # plot 3rd incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit3Per100k
     if incidence_max > inc * 0.8:
         limit = inc
         label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#df7c7c', linestyle=(0, (4, 4)))
+        lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(9, 60, 82), linestyle=(0, (4, 5)))
 
     # plot 4th incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit4Per100k
     if incidence_max > inc * 0.8:
         limit = inc
         label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT4_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_4 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#cf4c4c', linestyle=(0, (6, 4)))
+        lns6_4 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(6, 75, 78), linestyle=(0, (4, 3)))
 
     # plot 5th incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit5Per100k
     if incidence_max > inc * 0.8:
         limit = inc
         label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT5_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_5 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color='#cf2c2c', linestyle=(0, (7, 2)))
+        lns6_5 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(3, 85, 74), linestyle=(0, (6, 3)))
+
+    # plot 6th incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
+    inc = cov_area.weeklyIncidenceLimit6Per100k
+    if incidence_max > inc * 0.8:
+        limit = inc
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT6_PER_100K:3}/week/100k pop.: {limit:,.2f}"
+        lns6_6 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(0, 95, 70), linestyle=(0, (7, 1)))
 
     ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
 
@@ -381,7 +396,7 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     #
     # build legend
     # collect lines which shall get a label in legend
-    lines = lns4_1 + lns5 + lns1 + lns3 + lns0 + lns6_5 + lns6_4 + lns6_3 + lns6_2 + lns6_1
+    lines = lns4_1 + lns5 + lns1 + lns3 + lns0 + lns6_6 + lns6_5 + lns6_4 + lns6_3 + lns6_2 + lns6_1
     labs = [l.get_label() for l in lines]
 
     # text for legend
