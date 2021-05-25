@@ -281,22 +281,26 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
 
     #
     # move total cases y axis away to outside
-    if isDistrict:
-        ax_cumu.spines["right"].set_position(("axes", 1.15))
-    else:
-        ax_cumu.spines["right"].set_position(("axes", 1.18))
+    ## if isDistrict:
+    ##     ax_cumu.spines["right"].set_position(("axes", 1.15))
+    ## else:
+    ##     ax_cumu.spines["right"].set_position(("axes", 1.18))
+    ax_cumu.spines["right"].set_position(("axes", 1.12))
 
     # incidences graph plotting
-    label = 'sum of daily cases, for prior %s days of date' % 7
+    incidences = np.array(cov_area.incidence_values)
+    incidence_max_value = max(incidences)
+    ## label = 'sum of daily cases, for prior %s days of date' % 7
+    label = 'Inicid. per 100k pop. for prior 7 days of date'
     # plot yellow background for sum graph, then graph over it
-    ax_sum.plot(dates, cov_area.incidence_sums, label=label, color='yellow', linewidth=7, alpha=0.4)
-    lns0 = ax_sum.plot(dates, cov_area.incidence_sums, label=label, color=COLOR_INCID_SUMS)
+    ax_sum.plot(dates, incidences, label=label, color='yellow', linewidth=7, alpha=0.4)
+    lns0 = ax_sum.plot(dates, incidences, label=label, color=COLOR_INCID_SUMS)
     # set axis properties
-    incidence_max = max(cov_area.incidence_sums)
-    ax_sum.set_ylim(0, incidence_max * PLOT_YLIM_ENLARGER_DAILYS)
+    incidence_max_sum = max(cov_area.incidence_sums)
+    ax_sum.set_ylim(0, incidence_max_sum * PLOT_YLIM_ENLARGER_DAILYS)
     # also yellow background for label
-    ax_sum.set_ylabel(label + "\n(shows incidence border under-/overshooting)", color=COLOR_INCID_SUMS,
-                      bbox=dict(color='yellow', alpha=0.3, boxstyle='round', mutation_aspect=0.5))
+    ## ax_sum.set_ylabel(label + "\n(shows incidence border under-/overshooting)", color=COLOR_INCID_SUMS,
+    ax_sum.set_ylabel(label, color=COLOR_INCID_SUMS, bbox=dict(color='yellow', alpha=0.3, boxstyle='round', mutation_aspect=0.5))
     ax_sum.tick_params(axis='y', colors=COLOR_INCID_SUMS, size=8)
 
     # adjust sum y axis visibilities
@@ -313,46 +317,47 @@ def plot_timeseries(dm: dataMangling.DataMangled, cov_area: dataMangling.CovidDa
     ax_sum.yaxis.set_minor_locator(mpl_MultipleLocator(yminor))
 
     # plot incidence border lines
-    limit = cov_area.weeklyIncidenceLimit1Per100k
-    label = f"incid. border  {dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-    lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(15, 50, 90), linestyle=(0, (2, 7)))
+    inc = cov_area.weeklyIncidenceLimit1Per100k
+    inc_plot_line = dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K
+    label = f"incid. border  {dataMangling.WEEKLY_INCIDENCE_LIMIT1_PER_100K:3}/week/100k pop.: {inc:,.2f}"
+    lns6_1 = ax_sum.plot([dates[0]] + [dates[-1]], [inc_plot_line, inc_plot_line], label=label, color=hsv2rgb(15, 50, 90), linestyle=(0, (2, 7)))
 
     # plot second incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit2Per100k
-    if incidence_max > inc * 0.8:
-        limit = inc
-        label = f"incid. border  {dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(12, 55, 86), linestyle=(0, (3, 6)))
+    if incidence_max_sum > inc * 0.8:
+        inc_plot_line = dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K 
+        label = f"incid. border  {dataMangling.WEEKLY_INCIDENCE_LIMIT2_PER_100K:3}/week/100k pop.: {inc:,.2f}"
+        lns6_2 = ax_sum.plot([dates[0]] + [dates[-1]], [inc_plot_line, inc_plot_line], label=label, color=hsv2rgb(12, 55, 86), linestyle=(0, (3, 6)))
 
     # plot 3rd incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit3Per100k
-    if incidence_max > inc * 0.8:
-        limit = inc
-        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(9, 60, 82), linestyle=(0, (4, 5)))
+    if incidence_max_sum > inc * 0.8:
+        inc_plot_line = dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K 
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT3_PER_100K:3}/week/100k pop.: {inc:,.2f}"
+        lns6_3 = ax_sum.plot([dates[0]] + [dates[-1]], [inc_plot_line, inc_plot_line], label=label, color=hsv2rgb(9, 60, 82), linestyle=(0, (4, 5)))
 
     # plot 4th incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit4Per100k
-    if incidence_max > inc * 0.8:
-        limit = inc
-        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT4_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_4 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(6, 75, 78), linestyle=(0, (4, 3)))
+    if incidence_max_sum > inc * 0.8:
+        inc_plot_line = dataMangling.WEEKLY_INCIDENCE_LIMIT4_PER_100K 
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT4_PER_100K:3}/week/100k pop.: {inc:,.2f}"
+        lns6_4 = ax_sum.plot([dates[0]] + [dates[-1]], [inc_plot_line, inc_plot_line], label=label, color=hsv2rgb(6, 75, 78), linestyle=(0, (4, 3)))
 
     # plot 5th incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit5Per100k
-    if incidence_max > inc * 0.8:
-        limit = inc
-        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT5_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_5 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(3, 85, 74), linestyle=(0, (6, 3)))
+    if incidence_max_sum > inc * 0.8:
+        inc_plot_line = dataMangling.WEEKLY_INCIDENCE_LIMIT5_PER_100K 
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT5_PER_100K:3}/week/100k pop.: {inc:,.2f}"
+        lns6_5 = ax_sum.plot([dates[0]] + [dates[-1]], [inc_plot_line, inc_plot_line], label=label, color=hsv2rgb(3, 85, 74), linestyle=(0, (6, 3)))
 
     # plot 6th incidence border only if it is nearly reached, to have no unneeded large y1 numbers which would worsen the view
     inc = cov_area.weeklyIncidenceLimit6Per100k
-    if incidence_max > inc * 0.8:
-        limit = inc
-        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT6_PER_100K:3}/week/100k pop.: {limit:,.2f}"
-        lns6_6 = ax_sum.plot([dates[0]] + [dates[-1]], [limit, limit], label=label, color=hsv2rgb(0, 95, 70), linestyle=(0, (7, 1)))
+    if incidence_max_sum > inc * 0.8:
+        inc_plot_line = dataMangling.WEEKLY_INCIDENCE_LIMIT6_PER_100K 
+        label = f"incid. border {dataMangling.WEEKLY_INCIDENCE_LIMIT6_PER_100K:3}/week/100k pop.: {inc:,.2f}"
+        lns6_6 = ax_sum.plot([dates[0]] + [dates[-1]], [inc_plot_line, inc_plot_line], label=label, color=hsv2rgb(0, 95, 70), linestyle=(0, (7, 1)))
 
-    ax_sum.set_ylim(0, max(incidence_max, limit) * PLOT_YLIM_ENLARGER_DAILYS)
+    ax_sum.set_ylim(0, max(incidence_max_value, inc_plot_line) * PLOT_YLIM_ENLARGER_DAILYS)
 
 
     # set new ax limit for daily cases / averaging, trying to have evenly distributed major ticks for both y axes
